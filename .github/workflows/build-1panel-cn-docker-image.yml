@@ -32,21 +32,19 @@ on:
         default: true
 
 jobs:
-  check_remote:
-    name: Check Remote Version
+  # ========== 阶段 1: check_remote (V1/V2 并行) ==========
+  check_remote_v1:
+    name: Check Remote V1
     runs-on: ubuntu-latest
     outputs:
-      any_updated: ${{ steps.collect.outputs.any_updated }}
-      v1_version: ${{ steps.compare1.outputs.version }}
-      v2_version: ${{ steps.compare2.outputs.version }}
-      v1_bump: ${{ steps.compare1.outputs.bump }}
-      v2_bump: ${{ steps.compare2.outputs.bump }}
+      version: ${{ steps.compare.outputs.version }}
+      bump: ${{ steps.compare.outputs.bump }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Check V1
-        id: compare1
+        id: compare
         run: |
           verify() {
             local v="$1"
@@ -100,8 +98,18 @@ jobs:
             echo "bump=${REMOTE}" >> "$GITHUB_OUTPUT"
           fi
 
+  check_remote_v2:
+    name: Check Remote V2
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.compare.outputs.version }}
+      bump: ${{ steps.compare.outputs.bump }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Check V2
-        id: compare2
+        id: compare
         run: |
           verify() {
             local v="$1"
@@ -155,69 +163,61 @@ jobs:
             echo "bump=${REMOTE}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Collect
-        id: collect
-        run: |
-          V1="${{ steps.compare1.outputs.version }}"
-          V2="${{ steps.compare2.outputs.version }}"
-          if [[ -n "$V1" || -n "$V2" || "${{ inputs.force }}" == "true" ]]; then
-            echo "any_updated=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "any_updated=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  check_images:
-    name: Smoke Test Images
+  # ========== 阶段 2: check_images 冒烟测试 (V1/V2 并行) ==========
+  check_images_v1:
+    name: Smoke Test V1
     runs-on: ubuntu-latest
-    needs: check_remote
-    if: needs.check_remote.outputs.any_updated == 'true'
+    needs: check_remote_v1
+    if: needs.check_remote_v1.outputs.version != ''
     outputs:
-      v1_pass: ${{ steps.smoke_v1.outputs.pass }}
-      v2_pass: ${{ steps.smoke_v2.outputs.pass }}
+      pass: ${{ steps.smoke.outputs.pass }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Smoke Test V1
-        id: smoke_v1
-        continue-on-error: true
+        id: smoke
         env:
-          VERSION: ${{ needs.check_remote.outputs.v1_version }}
+          VERSION: ${{ needs.check_remote_v1.outputs.version }}
         run: |
           set -e
           bash .github/scripts/smoke-test.sh V1 "$VERSION" ./V1 ./V1/Dockerfile 1Panel.db 1panel
           echo "pass=true" >> "$GITHUB_OUTPUT"
 
+  check_images_v2:
+    name: Smoke Test V2
+    runs-on: ubuntu-latest
+    needs: check_remote_v2
+    if: needs.check_remote_v2.outputs.version != ''
+    outputs:
+      pass: ${{ steps.smoke.outputs.pass }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Smoke Test V2
-        id: smoke_v2
-        continue-on-error: true
+        id: smoke
         env:
-          VERSION: ${{ needs.check_remote.outputs.v2_version }}
+          VERSION: ${{ needs.check_remote_v2.outputs.version }}
         run: |
           set -e
           bash .github/scripts/smoke-test.sh V2 "$VERSION" ./V2 ./V2/Dockerfile core.db 1panel-core 1panel-agent
           echo "pass=true" >> "$GITHUB_OUTPUT"
 
-      - name: Fail on Smoke Failure
-        if: steps.smoke_v1.outputs.pass != 'true' || steps.smoke_v2.outputs.pass != 'true'
-        run: |
-          echo "::error::存在冒烟测试失败的目标，失败目标将跳过构建推送"
-          exit 1
-
-  build_images:
-    name: Build & Push Images
+  # ========== 阶段 3: build_images 构建推送 (V1/V2 并行) ==========
+  build_images_v1:
+    name: Build & Push V1
     runs-on: ubuntu-latest
-    needs: [check_remote, check_images]
-    if: always() && needs.check_remote.outputs.any_updated == 'true'
+    needs: [check_remote_v1, check_images_v1]
+    if: needs.check_remote_v1.outputs.version != '' && needs.check_images_v1.outputs.pass == 'true'
     outputs:
-      v1_built: ${{ steps.build_v1.outputs.built }}
-      v2_built: ${{ steps.build_v2.outputs.built }}
+      built: ${{ steps.build.outputs.built }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -235,11 +235,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build & Push V1
-        id: build_v1
-        continue-on-error: true
-        if: needs.check_remote.outputs.v1_version != '' && needs.check_images.outputs.v1_pass == 'true'
+        id: build
         env:
-          VERSION: ${{ needs.check_remote.outputs.v1_version }}
+          VERSION: ${{ needs.check_remote_v1.outputs.version }}
         run: |
           set -euo pipefail
           USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
@@ -256,12 +254,33 @@ jobs:
           echo "✅ V1 推送完成"
           echo "built=true" >> "$GITHUB_OUTPUT"
 
+  build_images_v2:
+    name: Build & Push V2
+    runs-on: ubuntu-latest
+    needs: [check_remote_v2, check_images_v2]
+    if: needs.check_remote_v2.outputs.version != '' && needs.check_images_v2.outputs.pass == 'true'
+    outputs:
+      built: ${{ steps.build.outputs.built }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build & Push V2
-        id: build_v2
-        continue-on-error: true
-        if: needs.check_remote.outputs.v2_version != '' && needs.check_images.outputs.v2_pass == 'true'
+        id: build
         env:
-          VERSION: ${{ needs.check_remote.outputs.v2_version }}
+          VERSION: ${{ needs.check_remote_v2.outputs.version }}
         run: |
           set -euo pipefail
           USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
@@ -287,19 +306,12 @@ jobs:
           echo "✅ V2 推送完成"
           echo "built=true" >> "$GITHUB_OUTPUT"
 
-      - name: Fail on Build Failure
-        if: >
-          (needs.check_remote.outputs.v1_version != '' && needs.check_images.outputs.v1_pass == 'true' && steps.build_v1.outputs.built != 'true')
-          || (needs.check_remote.outputs.v2_version != '' && needs.check_images.outputs.v2_pass == 'true' && steps.build_v2.outputs.built != 'true')
-        run: |
-          echo "::error::存在构建/推送失败的目标，失败目标将不回写版本"
-          exit 1
-
+  # ========== 阶段 4: bump_version 回写版本并提交 ==========
   bump_version:
     name: Update VERSION & Commit
     runs-on: ubuntu-latest
-    needs: [check_remote, build_images]
-    if: always() && needs.check_remote.outputs.any_updated == 'true'
+    needs: [check_remote_v1, check_remote_v2, build_images_v1, build_images_v2]
+    if: !cancelled() && (needs.check_remote_v1.outputs.version != '' || needs.check_remote_v2.outputs.version != '')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -308,10 +320,10 @@ jobs:
 
       - name: Write VERSION files
         run: |
-          V1_BUILT="${{ needs.build_images.outputs.v1_built }}"
-          V2_BUILT="${{ needs.build_images.outputs.v2_built }}"
-          V1_BUMP="${{ needs.check_remote.outputs.v1_bump }}"
-          V2_BUMP="${{ needs.check_remote.outputs.v2_bump }}"
+          V1_BUILT="${{ needs.build_images_v1.outputs.built }}"
+          V2_BUILT="${{ needs.build_images_v2.outputs.built }}"
+          V1_BUMP="${{ needs.check_remote_v1.outputs.bump }}"
+          V2_BUMP="${{ needs.check_remote_v2.outputs.bump }}"
           if [[ "$V1_BUILT" == "true" && -n "$V1_BUMP" ]]; then
             printf '%s\n' "$V1_BUMP" > ./V1/VERSION
             echo "✅ 写入 V1/VERSION = ${V1_BUMP}"
@@ -323,10 +335,10 @@ jobs:
 
       - name: Commit & Push
         run: |
-          V1_BUILT="${{ needs.build_images.outputs.v1_built }}"
-          V2_BUILT="${{ needs.build_images.outputs.v2_built }}"
-          V1_BUMP="${{ needs.check_remote.outputs.v1_bump }}"
-          V2_BUMP="${{ needs.check_remote.outputs.v2_bump }}"
+          V1_BUILT="${{ needs.build_images_v1.outputs.built }}"
+          V2_BUILT="${{ needs.build_images_v2.outputs.built }}"
+          V1_BUMP="${{ needs.check_remote_v1.outputs.bump }}"
+          V2_BUMP="${{ needs.check_remote_v2.outputs.bump }}"
           PANELVER=""
           if [[ "$V2_BUILT" == "true" && -n "$V2_BUMP" ]]; then
             PANELVER="$V2_BUMP"
