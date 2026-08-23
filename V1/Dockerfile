@@ -8,10 +8,10 @@ ARG PANELVER=""
 ENV TZ=Asia/Shanghai
 
 LABEL org.opencontainers.image.version="${PANELVER}" \
-      org.opencontainers.image.source="https://github.com/okxlin/docker-1panel" \
+      org.opencontainers.image.source="https://github.com/LetterCard/docker-1panel" \
       org.opencontainers.image.description="1Panel CN Edition Docker Image" \
       org.opencontainers.image.title="1Panel CN" \
-      org.opencontainers.image.vendor="okxlin"
+      org.opencontainers.image.vendor="LetterCard"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget tar unzip zip git sudo gnupg sqlite3 tzdata \

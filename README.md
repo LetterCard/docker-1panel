@@ -2,10 +2,10 @@
 
 语言：[简体中文](README.md) | [English](README.en.md)
 
-[![Docker Image Version](https://img.shields.io/docker/v/moelin/1panel/latest?color=%2348BB78&logo=docker&label=version)](https://hub.docker.com/r/moelin/1panel)
-[![Docker Pulls](https://img.shields.io/docker/pulls/moelin/1panel?color=%2348BB78&logo=docker&label=pulls)](https://hub.docker.com/r/moelin/1panel)
-[![Docker Stars](https://img.shields.io/docker/stars/moelin/1panel?color=%2348BB78&logo=docker&label=stars)](https://hub.docker.com/r/moelin/1panel)
-[![GitHub Stars](https://img.shields.io/github/stars/okxlin/docker-1panel)](https://github.com/okxlin/docker-1panel)
+[![Docker Image Version](https://img.shields.io/docker/v/bugseeker/1panel/latest?color=%2348BB78&logo=docker&label=version)](https://hub.docker.com/r/bugseeker/1panel)
+[![Docker Pulls](https://img.shields.io/docker/pulls/bugseeker/1panel?color=%2348BB78&logo=docker&label=pulls)](https://hub.docker.com/r/bugseeker/1panel)
+[![Docker Stars](https://img.shields.io/docker/stars/bugseeker/1panel?color=%2348BB78&logo=docker&label=stars)](https://hub.docker.com/r/bugseeker/1panel)
+[![GitHub Stars](https://img.shields.io/github/stars/LetterCard/docker-1panel)](https://github.com/LetterCard/docker-1panel)
 
 本项目提供 1Panel 的容器化部署镜像，支持 V1/V2、中国版 (CN) 与国际版 (Global/Intl)。镜像基于 Ubuntu LTS 构建，并通过 Supervisor 管理 1Panel 进程。
 
@@ -16,8 +16,8 @@
 
 | 系列 | 版本源 | Dockerfile | 最新源 | 适用场景 |
 | --- | --- | --- | --- | --- |
-| V1 CN | `resource.fit2cloud.com` | `V1/Dockerfile` | `v1.10.34-lts` | 继续维护已有 V1 部署 |
-| V1 Global | `resource.1panel.pro` | `V1/Dockerfile-Global` | `v1.10.34-lts` | 继续维护已有国际版 V1 部署 |
+| V1 CN | `resource.fit2cloud.com` | `V1/Dockerfile` | `v1.11.11-lts` | 继续维护已有 V1 部署 |
+| V1 Global | `resource.1panel.pro` | `V1/Dockerfile-Global` | `v1.11.11-lts` | 继续维护已有国际版 V1 部署 |
 | V2 CN | `resource.fit2cloud.com/1panel/package/v2` | `V2/Dockerfile` | `v2.2.2` | 新部署推荐 |
 | V2 Global | `resource.1panel.pro/v2` | `V2/Dockerfile-Global` | `v2.2.2` | 新部署国际版推荐 |
 
@@ -27,21 +27,21 @@
 
 ```bash
 # V1 CN
-moelin/1panel:v1.10.34-lts
-moelin/1panel:v1
+bugseeker/1panel:v1.10.11-lts
+bugseeker/1panel:v1
 
 # V1 Global
-moelin/1panel:global-v1.10.34-lts
-moelin/1panel:global-v1
+bugseeker/1panel:global-v1.11.11-lts
+bugseeker/1panel:global-v1
 
 # V2 CN
-moelin/1panel:v2.2.2
-moelin/1panel:v2
-moelin/1panel:latest
+bugseeker/1panel:v2.2.2
+bugseeker/1panel:v2
+bugseeker/1panel:latest
 
 # V2 Global
-moelin/1panel:global-v2.2.2
-moelin/1panel:global-v2
+bugseeker/1panel:global-v2.2.2
+bugseeker/1panel:global-v2
 ```
 
 生产环境建议固定到具体版本号；测试环境可使用 `v1`、`v2`、`global-v1`、`global-v2` 等浮动标签。
@@ -64,7 +64,7 @@ docker run -d \
   -e USERNAME=admin \
   -e PASSWORD=your_secure_password \
   -e ENTRANCE=myentrance \
-  moelin/1panel:v2
+  bugseeker/1panel:v2
 ```
 
 V2 Global：
@@ -81,10 +81,10 @@ docker run -d \
   -e USERNAME=admin \
   -e PASSWORD=your_secure_password \
   -e ENTRANCE=myentrance \
-  moelin/1panel:global-v2
+  bugseeker/1panel:global-v2
 ```
 
-V1 仍可使用相同运行方式，只需把镜像替换为 `moelin/1panel:v1` 或 `moelin/1panel:global-v1`。V1 如需完整兼容旧部署，可继续挂载 `/var/lib/docker/volumes` 与 `/root`：
+V1 仍可使用相同运行方式，只需把镜像替换为 `bugseeker/1panel:v1` 或 `bugseeker/1panel:global-v1`。V1 如需完整兼容旧部署，可继续挂载 `/var/lib/docker/volumes` 与 `/root`：
 
 ```bash
 -v /var/lib/docker/volumes:/var/lib/docker/volumes \
@@ -96,7 +96,7 @@ V1 仍可使用相同运行方式，只需把镜像替换为 `moelin/1panel:v1` 
 ```yaml
 services:
   1panel:
-    image: moelin/1panel:v2
+    image: bugseeker/1panel:v2
     container_name: 1panel-v2
     restart: always
     network_mode: host
@@ -123,7 +123,7 @@ docker compose up -d
 如需国际版 V2，将 `image` 改为：
 
 ```yaml
-image: moelin/1panel:global-v2
+image: bugseeker/1panel:global-v2
 ```
 
 ## 环境变量
@@ -145,7 +145,7 @@ docker logs 1panel-v2
 ```
 
 > [!IMPORTANT]
-> V1 环境变量配置仅适用于 `v1.10.34-lts` 及之后版本。旧版本 V1 请按原有方式部署和维护。
+> V1 环境变量配置仅适用于 `v1.11.11-lts` 及之后版本。旧版本 V1 请按原有方式部署和维护。
 
 ## 旧数据与密码重置
 
@@ -225,8 +225,8 @@ docker buildx build \
 V1 构建：
 
 ```bash
-docker build --build-arg PANELVER=v1.10.34-lts -t 1panel:v1 ./V1
-docker build -f ./V1/Dockerfile-Global --build-arg PANELVER=v1.10.34-lts -t 1panel:global-v1 ./V1
+docker build --build-arg PANELVER=v1.11.11-lts -t 1panel:v1 ./V1
+docker build -f ./V1/Dockerfile-Global --build-arg PANELVER=v1.11.11-lts -t 1panel:global-v1 ./V1
 ```
 
 ## 常见问题
@@ -240,7 +240,7 @@ docker build -f ./V1/Dockerfile-Global --build-arg PANELVER=v1.10.34-lts -t 1pan
 可以先用迁移脚本将 V1 从 Docker 运行模式切换到宿主机运行模式，再按官方文档升级到 V2：
 
 ```bash
-wget -O 1panel_docker_to_sys.sh https://raw.githubusercontent.com/okxlin/ToolScript/refs/heads/main/1Panel/1panel-execution-mode/1panel_docker_to_sys.sh
+wget -O 1panel_docker_to_sys.sh https://raw.githubusercontent.com/LetterCard/ToolScript/refs/heads/main/1Panel/1panel-execution-mode/1panel_docker_to_sys.sh
 chmod +x 1panel_docker_to_sys.sh
 bash 1panel_docker_to_sys.sh
 ```
@@ -248,7 +248,7 @@ bash 1panel_docker_to_sys.sh
 国内网络可将下载地址替换为 jsDelivr 镜像：
 
 ```bash
-https://cdn.jsdelivr.net/gh/okxlin/ToolScript@main/1Panel/1panel-execution-mode/1panel_docker_to_sys.sh
+https://cdn.jsdelivr.net/gh/LetterCard/ToolScript@main/1Panel/1panel-execution-mode/1panel_docker_to_sys.sh
 ```
 
 官方迁移文档：<https://1panel.cn/docs/v2/installation/v1_migrate/>
@@ -270,6 +270,6 @@ docker exec -it 1panel-v2 bash
 - [1Panel 中国官网](https://1panel.cn)
 - [1Panel 国际站](https://1panel.pro)
 - [1Panel GitHub](https://github.com/1Panel-dev/1Panel)
-- [Docker Hub](https://hub.docker.com/r/moelin/1panel)
-- [本项目 GitHub](https://github.com/okxlin/docker-1panel)
-- [应用商店适配库](https://github.com/okxlin/appstore)
+- [Docker Hub](https://hub.docker.com/r/bugseeker/1panel)
+- [本项目 GitHub](https://github.com/LetterCard/docker-1panel)
+- [应用商店适配库](https://github.com/LetterCard/appstore)

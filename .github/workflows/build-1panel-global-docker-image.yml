@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: "0 14 * * 2"
     - cron: "0 11 * * 5"
-  
+
   workflow_dispatch:
     inputs:
       target:
@@ -20,109 +20,312 @@ on:
         description: "指定版本号 (选择单个目标时使用；All 留空则分别获取最新版)"
         required: false
         type: string
-
+      force:
+        description: "强制重建 (忽略版本比对，直接构建当前跟踪版本)"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
-  build_images:
-    name: Build ${{ matrix.name }} Global
+  check_remote:
+    name: Check Remote Version
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: "V1"
-            context: "./V1"
-            dockerfile: "./V1/Dockerfile-Global"
-            version_url: "https://resource.1panel.pro/stable/latest"
-            tag_channel: "global-v1"
-
-          - name: "V2"
-            context: "./V2"
-            dockerfile: "./V2/Dockerfile-Global"
-            version_url: "https://resource.1panel.pro/v2/stable/latest"
-            tag_channel: "global-v2"
-
+    outputs:
+      any_updated: ${{ steps.collect.outputs.any_updated }}
+      v1_version: ${{ steps.compare1.outputs.version }}
+      v2_version: ${{ steps.compare2.outputs.version }}
+      v1_bump: ${{ steps.compare1.outputs.bump }}
+      v2_bump: ${{ steps.compare2.outputs.bump }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check Skipped
-        id: check_skip
+      - name: Check V1
+        id: compare1
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TARGET="${{ inputs.target }}"
-            CURRENT="${{ matrix.name }}"
-            if [[ "$TARGET" != "All" && "$TARGET" != "$CURRENT" ]]; then
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              echo "⏭️ Skipping $CURRENT Global build because user selected $TARGET"
-            else
-              echo "skip=false" >> "$GITHUB_OUTPUT"
+          verify() {
+            local v="$1"
+            if [[ -z "$v" || ! "$v" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
+              echo "::error::Invalid 1Panel version: ${v}"
+              exit 1
             fi
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+          }
+
+          TARGET="${{ inputs.target }}"
+          FORCE="${{ inputs.force }}"
+          VER_INPUT="${{ inputs.version }}"
+
+          # 手动选择单一目标且不是 V1 时跳过
+          if [[ "$TARGET" != "All" && "$TARGET" != "V1" ]]; then
+            echo "⏭️ 用户选择 ${TARGET}，跳过 V1 检查"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
+          LOCAL=$(cat ./V1/VERSION-GLOBAL)
+
+          # 手动指定版本号（仅单一目标时生效）
+          if [[ -n "$VER_INPUT" && "$TARGET" == "V1" ]]; then
+            verify "$VER_INPUT"
+            echo "👉 V1 使用手动版本: ${VER_INPUT}"
+            echo "version=${VER_INPUT}" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 强制重建：直接使用当前跟踪版本
+          if [[ "$FORCE" == "true" ]]; then
+            echo "🔨 强制重建 V1，使用当前跟踪版本: ${LOCAL}"
+            echo "version=${LOCAL}" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 自动：拉取远端最新版本并比对
+          REMOTE=$(curl -fsSL "https://resource.1panel.pro/stable/latest")
+          verify "$REMOTE"
+          if [[ "$REMOTE" == "$LOCAL" ]]; then
+            echo "🟢 V1 无更新: ${LOCAL}"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+          else
+            echo "🟡 V1 有新版本: ${LOCAL} -> ${REMOTE}"
+            echo "version=${REMOTE}" >> "$GITHUB_OUTPUT"
+            echo "bump=${REMOTE}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check V2
+        id: compare2
+        run: |
+          verify() {
+            local v="$1"
+            if [[ -z "$v" || ! "$v" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
+              echo "::error::Invalid 1Panel version: ${v}"
+              exit 1
+            fi
+          }
+
+          TARGET="${{ inputs.target }}"
+          FORCE="${{ inputs.force }}"
+          VER_INPUT="${{ inputs.version }}"
+
+          # 手动选择单一目标且不是 V2 时跳过
+          if [[ "$TARGET" != "All" && "$TARGET" != "V2" ]]; then
+            echo "⏭️ 用户选择 ${TARGET}，跳过 V2 检查"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          LOCAL=$(cat ./V2/VERSION-GLOBAL)
+
+          # 手动指定版本号（仅单一目标时生效）
+          if [[ -n "$VER_INPUT" && "$TARGET" == "V2" ]]; then
+            verify "$VER_INPUT"
+            echo "👉 V2 使用手动版本: ${VER_INPUT}"
+            echo "version=${VER_INPUT}" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 强制重建：直接使用当前跟踪版本
+          if [[ "$FORCE" == "true" ]]; then
+            echo "🔨 强制重建 V2，使用当前跟踪版本: ${LOCAL}"
+            echo "version=${LOCAL}" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 自动：拉取远端最新版本并比对
+          REMOTE=$(curl -fsSL "https://resource.1panel.pro/v2/stable/latest")
+          verify "$REMOTE"
+          if [[ "$REMOTE" == "$LOCAL" ]]; then
+            echo "🟢 V2 无更新: ${LOCAL}"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+          else
+            echo "🟡 V2 有新版本: ${LOCAL} -> ${REMOTE}"
+            echo "version=${REMOTE}" >> "$GITHUB_OUTPUT"
+            echo "bump=${REMOTE}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Collect
+        id: collect
+        run: |
+          V1="${{ steps.compare1.outputs.version }}"
+          V2="${{ steps.compare2.outputs.version }}"
+          if [[ -n "$V1" || -n "$V2" || "${{ inputs.force }}" == "true" ]]; then
+            echo "any_updated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any_updated=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  check_images:
+    name: Smoke Test Images Global
+    runs-on: ubuntu-latest
+    needs: check_remote
+    if: needs.check_remote.outputs.any_updated == 'true'
+    outputs:
+      v1_pass: ${{ steps.smoke_v1.outputs.pass }}
+      v2_pass: ${{ steps.smoke_v2.outputs.pass }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up QEMU
-        if: steps.check_skip.outputs.skip == 'false'
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        if: steps.check_skip.outputs.skip == 'false'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Smoke Test V1
+        id: smoke_v1
+        continue-on-error: true
+        env:
+          VERSION: ${{ needs.check_remote.outputs.v1_version }}
+        run: |
+          set -e
+          bash .github/scripts/smoke-test.sh V1 "$VERSION" ./V1 ./V1/Dockerfile-Global 1Panel.db 1panel
+          echo "pass=true" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke Test V2
+        id: smoke_v2
+        continue-on-error: true
+        env:
+          VERSION: ${{ needs.check_remote.outputs.v2_version }}
+        run: |
+          set -e
+          bash .github/scripts/smoke-test.sh V2 "$VERSION" ./V2 ./V2/Dockerfile-Global core.db 1panel-core 1panel-agent
+          echo "pass=true" >> "$GITHUB_OUTPUT"
+
+      - name: Fail on Smoke Failure
+        if: steps.smoke_v1.outputs.pass != 'true' || steps.smoke_v2.outputs.pass != 'true'
+        run: |
+          echo "::error::存在冒烟测试失败的目标，失败目标将跳过构建推送"
+          exit 1
+
+  build_images:
+    name: Build & Push Images Global
+    runs-on: ubuntu-latest
+    needs: [check_remote, check_images]
+    if: always() && needs.check_remote.outputs.any_updated == 'true'
+    outputs:
+      v1_built: ${{ steps.build_v1.outputs.built }}
+      v2_built: ${{ steps.build_v2.outputs.built }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        if: steps.check_skip.outputs.skip == 'false'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Get Version
-        id: get_version
-        if: steps.check_skip.outputs.skip == 'false'
+      - name: Build & Push V1
+        id: build_v1
+        continue-on-error: true
+        if: needs.check_remote.outputs.v1_version != '' && needs.check_images.outputs.v1_pass == 'true'
+        env:
+          VERSION: ${{ needs.check_remote.outputs.v1_version }}
         run: |
-          validate_version() {
-            local version="$1"
-            if [[ -z "$version" || ! "$version" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
-              echo "::error::Invalid 1Panel version: ${version}"
-              exit 1
-            fi
-          }
+          set -euo pipefail
+          USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
+          TAGS=("${USERNAME}/1panel:global-${VERSION}" "${USERNAME}/1panel:global-v1")
+          TAG_ARGS=""
+          for t in "${TAGS[@]}"; do TAG_ARGS="${TAG_ARGS} -t ${t}"; done
+          echo "🚀 构建并推送 V1: ${TAGS[*]}"
+          docker buildx build --push \
+            --platform linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le,linux/s390x \
+            --file ./V1/Dockerfile-Global \
+            --build-arg "PANELVER=${VERSION}" \
+            ${TAG_ARGS} \
+            ./V1
+          echo "✅ V1 推送完成"
+          echo "built=true" >> "$GITHUB_OUTPUT"
 
-          VER_INPUT="${{ inputs.version }}"
-          if [ -n "$VER_INPUT" ]; then
-            validate_version "$VER_INPUT"
-            echo "PANELVER=${VER_INPUT}" >> "$GITHUB_OUTPUT"
-            echo "👉 Using manual version: ${VER_INPUT}"
-          else
-            VER_LATEST=$(curl -fsSL "${{ matrix.version_url }}")
-            validate_version "$VER_LATEST"
-            echo "PANELVER=${VER_LATEST}" >> "$GITHUB_OUTPUT"
-            echo "🔎 Detected latest version: ${VER_LATEST}"
+      - name: Build & Push V2
+        id: build_v2
+        continue-on-error: true
+        if: needs.check_remote.outputs.v2_version != '' && needs.check_images.outputs.v2_pass == 'true'
+        env:
+          VERSION: ${{ needs.check_remote.outputs.v2_version }}
+        run: |
+          set -euo pipefail
+          USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
+          TAGS=("${USERNAME}/1panel:global-${VERSION}" "${USERNAME}/1panel:global-v2")
+          TAG_ARGS=""
+          for t in "${TAGS[@]}"; do TAG_ARGS="${TAG_ARGS} -t ${t}"; done
+          echo "🚀 构建并推送 V2: ${TAGS[*]}"
+          docker buildx build --push \
+            --platform linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le,linux/s390x \
+            --file ./V2/Dockerfile-Global \
+            --build-arg "PANELVER=${VERSION}" \
+            ${TAG_ARGS} \
+            ./V2
+          echo "✅ V2 推送完成"
+          echo "built=true" >> "$GITHUB_OUTPUT"
+
+      - name: Fail on Build Failure
+        if: >
+          (needs.check_remote.outputs.v1_version != '' && needs.check_images.outputs.v1_pass == 'true' && steps.build_v1.outputs.built != 'true')
+          || (needs.check_remote.outputs.v2_version != '' && needs.check_images.outputs.v2_pass == 'true' && steps.build_v2.outputs.built != 'true')
+        run: |
+          echo "::error::存在构建/推送失败的目标，失败目标将不回写版本"
+          exit 1
+
+  bump_version:
+    name: Update VERSION-GLOBAL & Commit
+    runs-on: ubuntu-latest
+    needs: [check_remote, build_images]
+    if: always() && needs.check_remote.outputs.any_updated == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write VERSION-GLOBAL files
+        run: |
+          V1_BUILT="${{ needs.build_images.outputs.v1_built }}"
+          V2_BUILT="${{ needs.build_images.outputs.v2_built }}"
+          V1_BUMP="${{ needs.check_remote.outputs.v1_bump }}"
+          V2_BUMP="${{ needs.check_remote.outputs.v2_bump }}"
+          if [[ "$V1_BUILT" == "true" && -n "$V1_BUMP" ]]; then
+            printf '%s\n' "$V1_BUMP" > ./V1/VERSION-GLOBAL
+            echo "✅ 写入 V1/VERSION-GLOBAL = ${V1_BUMP}"
+          fi
+          if [[ "$V2_BUILT" == "true" && -n "$V2_BUMP" ]]; then
+            printf '%s\n' "$V2_BUMP" > ./V2/VERSION-GLOBAL
+            echo "✅ 写入 V2/VERSION-GLOBAL = ${V2_BUMP}"
           fi
 
-      - name: Generate Tags
-        id: meta
-        if: steps.check_skip.outputs.skip == 'false'
+      - name: Commit & Push
         run: |
-          VERSION="${{ steps.get_version.outputs.PANELVER }}"
-          USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
-          TAG_CHANNEL="${{ matrix.tag_channel }}"
+          V1_BUILT="${{ needs.build_images.outputs.v1_built }}"
+          V2_BUILT="${{ needs.build_images.outputs.v2_built }}"
+          V1_BUMP="${{ needs.check_remote.outputs.v1_bump }}"
+          V2_BUMP="${{ needs.check_remote.outputs.v2_bump }}"
+          PANELVER=""
+          if [[ "$V2_BUILT" == "true" && -n "$V2_BUMP" ]]; then
+            PANELVER="$V2_BUMP"
+          elif [[ "$V1_BUILT" == "true" && -n "$V1_BUMP" ]]; then
+            PANELVER="$V1_BUMP"
+          fi
 
-          TAGS="${USERNAME}/1panel:global-${VERSION}"
-          TAGS="${TAGS},${USERNAME}/1panel:${TAG_CHANNEL}"
-
-          echo "Generated Tags: $TAGS"
-          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push ${{ matrix.name }} Global
-        uses: docker/build-push-action@v6
-        if: steps.check_skip.outputs.skip == 'false'
-        with:
-          push: true
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          build-args: |
-            PANELVER=${{ steps.get_version.outputs.PANELVER }}
-          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le,linux/s390x
-          tags: ${{ steps.meta.outputs.tags }}
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ./V1/VERSION-GLOBAL ./V2/VERSION-GLOBAL
+          if git diff --cached --quiet; then
+            echo "ℹ️ 无版本变化需要提交"
+            exit 0
+          fi
+          git commit -m "chore: 1Panel升级到 ${PANELVER}"
+          git push

@@ -2,10 +2,10 @@
 
 Languages: [English](README.en.md) | [Simplified Chinese](README.md)
 
-[![Docker Image Version](https://img.shields.io/docker/v/moelin/1panel/latest?color=%2348BB78&logo=docker&label=version)](https://hub.docker.com/r/moelin/1panel)
-[![Docker Pulls](https://img.shields.io/docker/pulls/moelin/1panel?color=%2348BB78&logo=docker&label=pulls)](https://hub.docker.com/r/moelin/1panel)
-[![Docker Stars](https://img.shields.io/docker/stars/moelin/1panel?color=%2348BB78&logo=docker&label=stars)](https://hub.docker.com/r/moelin/1panel)
-[![GitHub Stars](https://img.shields.io/github/stars/okxlin/docker-1panel)](https://github.com/okxlin/docker-1panel)
+[![Docker Image Version](https://img.shields.io/docker/v/bugseeker/1panel/latest?color=%2348BB78&logo=docker&label=version)](https://hub.docker.com/r/bugseeker/1panel)
+[![Docker Pulls](https://img.shields.io/docker/pulls/bugseeker/1panel?color=%2348BB78&logo=docker&label=pulls)](https://hub.docker.com/r/bugseeker/1panel)
+[![Docker Stars](https://img.shields.io/docker/stars/bugseeker/1panel?color=%2348BB78&logo=docker&label=stars)](https://hub.docker.com/r/bugseeker/1panel)
+[![GitHub Stars](https://img.shields.io/github/stars/LetterCard/docker-1panel)](https://github.com/LetterCard/docker-1panel)
 
 This project provides container images for 1Panel. It supports V1/V2, CN builds, and Global/Intl builds. Images use an Ubuntu LTS base and run 1Panel processes through Supervisor.
 
@@ -16,8 +16,8 @@ This project provides container images for 1Panel. It supports V1/V2, CN builds,
 
 | Series | Source | Dockerfile | Latest source version | Use case |
 | --- | --- | --- | --- | --- |
-| V1 CN | `resource.fit2cloud.com` | `V1/Dockerfile` | `v1.10.34-lts` | Maintain existing V1 deployments |
-| V1 Global | `resource.1panel.pro` | `V1/Dockerfile-Global` | `v1.10.34-lts` | Maintain existing Global V1 deployments |
+| V1 CN | `resource.fit2cloud.com` | `V1/Dockerfile` | `v1.11.11-lts` | Maintain existing V1 deployments |
+| V1 Global | `resource.1panel.pro` | `V1/Dockerfile-Global` | `v1.11.11-lts` | Maintain existing Global V1 deployments |
 | V2 CN | `resource.fit2cloud.com/1panel/package/v2` | `V2/Dockerfile` | `v2.2.2` | Recommended for new CN deployments |
 | V2 Global | `resource.1panel.pro/v2` | `V2/Dockerfile-Global` | `v2.2.2` | Recommended for new Global deployments |
 
@@ -27,21 +27,21 @@ Common tags:
 
 ```bash
 # V1 CN
-moelin/1panel:v1.10.34-lts
-moelin/1panel:v1
+bugseeker/1panel:v1.11.11-lts
+bugseeker/1panel:v1
 
 # V1 Global
-moelin/1panel:global-v1.10.34-lts
-moelin/1panel:global-v1
+bugseeker/1panel:global-v1.11.11-lts
+bugseeker/1panel:global-v1
 
 # V2 CN
-moelin/1panel:v2.2.2
-moelin/1panel:v2
-moelin/1panel:latest
+bugseeker/1panel:v2.2.2
+bugseeker/1panel:v2
+bugseeker/1panel:latest
 
 # V2 Global
-moelin/1panel:global-v2.2.2
-moelin/1panel:global-v2
+bugseeker/1panel:global-v2.2.2
+bugseeker/1panel:global-v2
 ```
 
 Pin a version tag in production. Floating tags such as `v1`, `v2`, `global-v1`, and `global-v2` work better for testing.
@@ -64,7 +64,7 @@ docker run -d \
   -e USERNAME=admin \
   -e PASSWORD=your_secure_password \
   -e ENTRANCE=myentrance \
-  moelin/1panel:v2
+  bugseeker/1panel:v2
 ```
 
 V2 Global:
@@ -81,10 +81,10 @@ docker run -d \
   -e USERNAME=admin \
   -e PASSWORD=your_secure_password \
   -e ENTRANCE=myentrance \
-  moelin/1panel:global-v2
+  bugseeker/1panel:global-v2
 ```
 
-V1 uses the same run pattern. Replace the image with `moelin/1panel:v1` or `moelin/1panel:global-v1`. For full compatibility with older V1 deployments, you may also mount `/var/lib/docker/volumes` and `/root`:
+V1 uses the same run pattern. Replace the image with `bugseeker/1panel:v1` or `bugseeker/1panel:global-v1`. For full compatibility with older V1 deployments, you may also mount `/var/lib/docker/volumes` and `/root`:
 
 ```bash
 -v /var/lib/docker/volumes:/var/lib/docker/volumes \
@@ -96,7 +96,7 @@ V1 uses the same run pattern. Replace the image with `moelin/1panel:v1` or `moel
 ```yaml
 services:
   1panel:
-    image: moelin/1panel:v2
+    image: bugseeker/1panel:v2
     container_name: 1panel-v2
     restart: always
     network_mode: host
@@ -123,7 +123,7 @@ docker compose up -d
 For V2 Global, change the image:
 
 ```yaml
-image: moelin/1panel:global-v2
+image: bugseeker/1panel:global-v2
 ```
 
 ## Environment Variables
@@ -145,7 +145,7 @@ docker logs 1panel-v2
 ```
 
 > [!IMPORTANT]
-> V1 environment-variable initialization applies only to `v1.10.34-lts` and later. Keep older V1 images on their original deployment flow.
+> V1 environment-variable initialization applies only to `v1.11.11-lts` and later. Keep older V1 images on their original deployment flow.
 
 ## Existing Data And Password Resets
 
@@ -225,8 +225,8 @@ docker buildx build \
 V1 builds:
 
 ```bash
-docker build --build-arg PANELVER=v1.10.34-lts -t 1panel:v1 ./V1
-docker build -f ./V1/Dockerfile-Global --build-arg PANELVER=v1.10.34-lts -t 1panel:global-v1 ./V1
+docker build --build-arg PANELVER=v1.11.11-lts -t 1panel:v1 ./V1
+docker build -f ./V1/Dockerfile-Global --build-arg PANELVER=v1.11.11-lts -t 1panel:global-v1 ./V1
 ```
 
 ## FAQ
@@ -240,7 +240,7 @@ Use V2 for new deployments. If an existing V1 deployment works well, you can kee
 You can use the migration script to switch V1 from Docker mode to host mode, then upgrade to V2 with the official guide:
 
 ```bash
-wget -O 1panel_docker_to_sys.sh https://raw.githubusercontent.com/okxlin/ToolScript/refs/heads/main/1Panel/1panel-execution-mode/1panel_docker_to_sys.sh
+wget -O 1panel_docker_to_sys.sh https://raw.githubusercontent.com/LetterCard/ToolScript/refs/heads/main/1Panel/1panel-execution-mode/1panel_docker_to_sys.sh
 chmod +x 1panel_docker_to_sys.sh
 bash 1panel_docker_to_sys.sh
 ```
@@ -248,7 +248,7 @@ bash 1panel_docker_to_sys.sh
 For networks in mainland China, replace the download URL with the jsDelivr mirror:
 
 ```bash
-https://cdn.jsdelivr.net/gh/okxlin/ToolScript@main/1Panel/1panel-execution-mode/1panel_docker_to_sys.sh
+https://cdn.jsdelivr.net/gh/LetterCard/ToolScript@main/1Panel/1panel-execution-mode/1panel_docker_to_sys.sh
 ```
 
 Official migration guide: <https://1panel.cn/docs/v2/installation/v1_migrate/>
@@ -270,6 +270,6 @@ The image contains a specific 1Panel binary version and its initialization files
 - [1Panel CN website](https://1panel.cn)
 - [1Panel Global website](https://1panel.pro)
 - [1Panel GitHub](https://github.com/1Panel-dev/1Panel)
-- [Docker Hub](https://hub.docker.com/r/moelin/1panel)
-- [This project on GitHub](https://github.com/okxlin/docker-1panel)
-- [App store compatibility repository](https://github.com/okxlin/appstore)
+- [Docker Hub](https://hub.docker.com/r/bugseeker/1panel)
+- [This project on GitHub](https://github.com/LetterCard/docker-1panel)
+- [App store compatibility repository](https://github.com/LetterCard/appstore)
