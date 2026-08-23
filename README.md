@@ -272,4 +272,3 @@ docker exec -it 1panel-v2 bash
 - [1Panel GitHub](https://github.com/1Panel-dev/1Panel)
 - [Docker Hub](https://hub.docker.com/r/bugseeker/1panel)
 - [本项目 GitHub](https://github.com/LetterCard/docker-1panel)
-- [应用商店适配库](https://github.com/LetterCard/appstore)
