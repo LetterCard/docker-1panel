@@ -44,12 +44,12 @@ CID=$(docker run -d --name "smoke-${NAME}" \
 
 echo "== 1) 等待服务健康 (http://127.0.0.1:10086) =="
 OK=0
-for i in $(seq 1 150); do
-  if docker exec "$CID" sh -c "curl -fsS -o /dev/null --max-time 3 http://127.0.0.1:10086" 2>/dev/null; then
+for i in $(seq 1 300); do
+  if docker exec "$CID" sh -c "curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:10086" 2>/dev/null; then
     OK=1
     break
   fi
-  sleep 2
+  sleep 1
 done
 if [ "$OK" != "1" ]; then
   echo "::error::${NAME} 服务健康检查超时 (端口 10086)"
