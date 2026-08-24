@@ -70,14 +70,16 @@ jobs:
           # 格式: IMAGE|VARIANT|STATUS;检查项|emoji;检查项|emoji;...
           CHECKS=$(tail -n +2 published-detail-${{ strategy.job-index }}.txt | tr '\n' ';' | sed 's/;$//')
           printf '%s\n' "${IMAGE}|${VARIANT}|${st};${CHECKS}" > detail-${{ strategy.job-index }}.txt
+          # 用版本号（tag）命名 artifact，如 bugseeker/1panel:v2.2.5 -> v2.2.5
+          echo "artifact_name=${IMAGE##*:}" >> "$GITHUB_OUTPUT"
           exit "$code"
 
       - name: Upload Detail
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          # 每个矩阵 job 用唯一名称，避免同名并发上传互相覆盖
-          name: results-${{ strategy.job-index }}
+          # 按版本号命名（唯一，避免同名并发覆盖，且可读性好）
+          name: ${{ steps.test.outputs.artifact_name }}
           path: detail-*.txt
 
   # ========== 3) 汇总结果并回写仓库 ==========
@@ -97,8 +99,8 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: results-dir
-          # 匹配所有 results-<index> 工件
-          pattern: results-*
+          # 下载全部版本号工件（v2.2.5 / latest / global-v1 等）
+          pattern: '*'
 
       - name: Generate Result File
         id: gen
