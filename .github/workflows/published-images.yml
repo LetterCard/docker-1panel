@@ -65,13 +65,11 @@ jobs:
           bash scripts/published-test.sh "${{ matrix.image }}" "${{ matrix.variant }}"
           code=$?
           if [ "$code" -eq 0 ]; then st="🟢"; else st="🔴"; fi
-          # 持久化详情传给 report（多行用 heredoc 分隔符）
-          # 首行: IMAGE|VARIANT|STATUS ；之后每行: 检查项|emoji
+          # 单行编码输出，避免多行值经 ${{ }} 注入 env 时被换行破坏
+          # 格式: IMAGE|VARIANT|STATUS;检查项|emoji;检查项|emoji;...
+          CHECKS=$(tail -n +2 /tmp/published-detail.txt | tr '\n' ';' | sed 's/;$//')
           {
-            echo "detail<<_EOF_"
-            echo "${{ matrix.image }}|${{ matrix.variant }}|${st}"
-            tail -n +2 /tmp/published-detail.txt
-            echo "_EOF_"
+            echo "detail=${{ matrix.image }}|${{ matrix.variant }}|${st};${CHECKS}"
           } >> "$GITHUB_OUTPUT"
           exit "$code"
 

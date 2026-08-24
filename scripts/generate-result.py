@@ -28,18 +28,20 @@ def parse_rows(details):
     for d in details:
         if not d:
             continue
-        lines = d.strip("\n").split("\n")
-        parts = lines[0].split("|")
-        if len(parts) < 3:
+        # 单行格式: IMAGE|VARIANT|STATUS;检查项|emoji;检查项|emoji;...
+        segment = d.strip().split(";", 1)
+        header = segment[0].split("|")
+        if len(header) < 3:
             continue
-        img, variant, st = parts[:3]
+        img, variant, st = header[:3]
         checks = []
-        for ln in lines[1:]:
-            ln = ln.strip()
-            if not ln or "|" not in ln:
-                continue
-            name, res = ln.split("|", 1)
-            checks.append((name.strip(), res.strip()))
+        if len(segment) > 1 and segment[1]:
+            for part in segment[1].split(";"):
+                part = part.strip()
+                if not part or "|" not in part:
+                    continue
+                name, res = part.split("|", 1)
+                checks.append((name.strip(), res.strip()))
         rows.append((img, variant, st, checks))
     return rows
 
