@@ -7,7 +7,7 @@ description: "维护 1Panel Docker 镜像构建项目（CI 流水线、版本升
 
 ## 项目定位
 
-本项目是 [okxlin/docker-1panel](https://github.com/okxlin/docker-1panel) 的 fork 定制版。通过 GitHub Actions 将 1Panel（V1/V2 × CN/Global 共 4 种镜像）构建并推送到 Docker Hub（发布账号 `LetterCard`）。核心差异化能力：
+本项目是 [okxlin/docker-1panel](https://github.com/okxlin/docker-1panel) 的 fork 定制版。通过 GitHub Actions 将 1Panel（V1/V2 × CN/Global 共 4 种镜像）构建并推送到 Docker Hub（发布账号 `bugseeker`）。核心差异化能力：
 
 - **版本追踪**：用 `VERSION` / `VERSION-GLOBAL` 文件记录已发布版本，仅在远端有新版时才构建
 - **冒烟测试**：发布前对镜像做 5 项自动化检查，失败则阻断推送
@@ -20,9 +20,12 @@ description: "维护 1Panel Docker 镜像构建项目（CI 流水线、版本升
   workflows/
     build-1panel-cn-docker-image.yml      # CN 版流水线
     build-1panel-global-docker-image.yml  # Global 版流水线
-  scripts/
-    smoke-test.sh                         # 冒烟测试（两流水线共用）
+    published-images.yml                  # 已发布镜像全面测试（独立触发）
   dependabot.yml                          # 自动维护 Actions 版本
+scripts/
+  smoke-test.sh                           # 构建前冒烟测试（两个流水线共用）
+  published-test.sh                       # 已发布镜像全面测试
+  resolve-tags.py                         # 动态解析 Docker Hub tags（published-test 使用）
 V1/
   Dockerfile           # CN 构建（ubuntu:26.04）
   Dockerfile-Global    # Global 构建
@@ -56,7 +59,7 @@ V2/
 ### 各阶段要点
 
 - **check_remote**：`curl` 远端 latest URL（CN: `resource.fit2cloud.com`，Global: `resource.1panel.pro`），用正则 `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$` 校验。支持 3 种手动输入：`version`（指定版本）、`force`（忽略比对强制重建）、`target`（只构建 V1 或 V2）。
-- **check_images**：调用 `.github/scripts/smoke-test.sh <NAME> <VERSION> <CONTEXT> <DOCKERFILE> <DB_FILE> <PROG...>`，任一检查失败以非零退出，由 `needs`/`if` 条件阻断构建。
+- **check_images**：调用 `scripts/smoke-test.sh <NAME> <VERSION> <CONTEXT> <DOCKERFILE> <DB_FILE> <PROG...>`，任一检查失败以非零退出，由 `needs`/`if` 条件阻断构建。
 - **build_images**：原生 `docker buildx build --push`，平台 `linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le,linux/s390x`。V2 用 `--cache-from/--cache-to type=gha` 加速。
 - **bump_version**：仅在 `built=true && bump 非空` 时写 VERSION 文件；无变化则跳过提交。提交身份为 `github-actions[bot]`。
 
@@ -78,6 +81,19 @@ V2/
 3. **版本一致**：`/usr/local/bin/1pctl` 中 `ORIGINAL_VERSION=` 与期望版本相同
 4. **命令可用**：`1pctl version` 能执行
 5. **数据初始化**：`/opt/1panel/db/<DB_FILE>` 存在（V1=`1Panel.db`，V2=`core.db` + `agent.db`）
+
+## 已发布镜像全面测试（published-test.sh）
+
+独立 workflow `published-images.yml`（手动触发），验证**已推送到 Docker Hub 的镜像**功能正常：
+
+- **拉取方式**：`docker pull bugseeker/1panel:<tag>`，从 Docker Hub 拉取已发布镜像（不在本地构建）
+- **动态 tag 解析**：`resolve-tags.py` 调 Docker Hub API 拉取全部 tags，取 5 个固定浮动标签（`latest`/`v1`/`v2`/`global-v1`/`global-v2`）+ 各系列最新版本号（如 `v2.2.5`、`global-v2.2.5`），版本升级后无需改配置
+- **覆盖**：V1/V2 × CN/Global 共 9 个 tag，matrix 逐镜像执行
+- **检查项**：镜像可拉取、容器可启动、服务健康（10086）、supervisor 进程 RUNNING、数据文件初始化、版本一致、1pctl 命令可用、docker/compose 可用、环境变量持久化、主进程存活
+- **结果回写**：
+  - `TEST-RESULT.md` 生成完整详情，每个镜像一段 `<details>/<summary>` 可折叠表格
+  - commit message `chore: 测试结果-><emoji> (通过 N / 失败 M / 跳过 K)`，状态展示在 GitHub 仓库首页的 Commit 列表中
+- **结果仅打印到 Actions 日志并回写 `TEST-RESULT.md`**，不推送镜像、不改 VERSION 版本文件
 
 ## 版本号位置（改版本时必须同步）
 
@@ -106,6 +122,9 @@ V2/
 ### 5. 对比上游（okxlin/docker-1panel）
 上游用单 job + matrix + `docker/build-push-action@v6`，无冒烟测试/版本回写。本项目是 4 阶段流水线。**不要把上游的简化结构直接套用**，本项目流水线的冒烟测试与版本回写是核心价值；如需参考，只参考上游的"安全加固"类改动（如构建输入校验、runtime hardening）。
 
+### 6. 测试已发布镜像
+Actions 页运行 `Test Published 1Panel Images`，默认测试全部 9 个 tag（动态解析最新版本）。传 `tag` 可只测单个，传 `username` 可覆盖默认命名空间 `bugseeker`。
+
 ## 约定与注意事项
 
 - Secrets 仅 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` 两个
@@ -117,4 +136,4 @@ V2/
 ## 验证
 
 - workflow YAML 语法校验：`python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" .github/workflows/build-1panel-cn-docker-image.yml`（`on:` 会被解析为布尔值是正常现象，重点看是否报缩进/语法错误）
-- shell 脚本语法校验：`bash -n .github/scripts/smoke-test.sh V1 v1.0 ./V1 ./V1/Dockerfile 1Panel.db 1panel`（`bash -n` 不执行，参数仅占位）
+- shell 脚本语法校验：`bash -n scripts/smoke-test.sh V1 v1.0 ./V1 ./V1/Dockerfile 1Panel.db 1panel`（`bash -n` 不执行，参数仅占位）

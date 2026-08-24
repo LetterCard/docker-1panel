@@ -184,7 +184,7 @@ jobs:
           VERSION: ${{ needs.check_remote_v1.outputs.version }}
         run: |
           set -e
-          bash .github/scripts/smoke-test.sh V1 "$VERSION" ./V1 ./V1/Dockerfile 1Panel.db 1panel
+          bash scripts/smoke-test.sh V1 "$VERSION" ./V1 ./V1/Dockerfile 1Panel.db 1panel
           echo "pass=true" >> "$GITHUB_OUTPUT"
 
   check_images_v2:
@@ -207,7 +207,7 @@ jobs:
           VERSION: ${{ needs.check_remote_v2.outputs.version }}
         run: |
           set -e
-          bash .github/scripts/smoke-test.sh V2 "$VERSION" ./V2 ./V2/Dockerfile core.db 1panel-core 1panel-agent
+          bash scripts/smoke-test.sh V2 "$VERSION" ./V2 ./V2/Dockerfile core.db 1panel-core 1panel-agent
           echo "pass=true" >> "$GITHUB_OUTPUT"
 
   # ========== 阶段 3: build_images 构建推送 (V1/V2 并行) ==========
