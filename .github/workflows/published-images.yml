@@ -76,7 +76,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: results
+          # 每个矩阵 job 用唯一名称，避免同名并发上传互相覆盖
+          name: results-${{ strategy.job-index }}
           path: detail-*.txt
 
   # ========== 3) 汇总结果并回写仓库 ==========
@@ -96,6 +97,8 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: results-dir
+          # 匹配所有 results-<index> 工件
+          pattern: results-*
 
       - name: Generate Result File
         id: gen
