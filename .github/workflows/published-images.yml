@@ -60,16 +60,18 @@ jobs:
       - name: Run Full Test
         id: test
         env:
+          IMAGE: ${{ matrix.image }}
+          VARIANT: ${{ matrix.variant }}
           PUBLISHED_DETAIL_FILE: /tmp/published-detail.txt
         run: |
-          bash scripts/published-test.sh "${{ matrix.image }}" "${{ matrix.variant }}"
+          bash scripts/published-test.sh "$IMAGE" "$VARIANT"
           code=$?
           if [ "$code" -eq 0 ]; then st="🟢"; else st="🔴"; fi
           # 单行编码输出，避免多行值经 ${{ }} 注入 env 时被换行破坏
           # 格式: IMAGE|VARIANT|STATUS;检查项|emoji;检查项|emoji;...
           CHECKS=$(tail -n +2 /tmp/published-detail.txt | tr '\n' ';' | sed 's/;$//')
           {
-            echo "detail=${{ matrix.image }}|${{ matrix.variant }}|${st};${CHECKS}"
+            echo "detail=${IMAGE}|${VARIANT}|${st};${CHECKS}"
           } >> "$GITHUB_OUTPUT"
           exit "$code"
 
@@ -88,7 +90,7 @@ jobs:
       - name: Generate Result File
         id: gen
         env:
-          DETAILS: ${{ needs.full_test.outputs.detail }}
+          DETAILS: ${{ toJSON(needs.full_test.outputs.detail) }}
         run: python3 scripts/generate-result.py
 
       - name: Commit & Push
