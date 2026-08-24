@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: resolve
     outputs:
-      result: ${{ steps.test.outputs.result }}
+      detail: ${{ steps.test.outputs.detail }}
     strategy:
       fail-fast: false
       matrix:
@@ -60,21 +60,20 @@ jobs:
       - name: Run Full Test
         id: test
         env:
-          PUBLISHED_DETAIL_FILE: /tmp/published-detail-${{ strategy.job-index }}.txt
+          PUBLISHED_DETAIL_FILE: /tmp/published-detail.txt
         run: |
           bash scripts/published-test.sh "${{ matrix.image }}" "${{ matrix.variant }}"
           code=$?
           if [ "$code" -eq 0 ]; then st="🟢"; else st="🔴"; fi
-          echo "result=${{ matrix.image }}|$st" >> "$GITHUB_OUTPUT"
+          # 持久化详情传给 report（多行用 heredoc 分隔符）
+          # 首行: IMAGE|VARIANT|STATUS ；之后每行: 检查项|emoji
+          {
+            echo "detail<<_EOF_"
+            echo "${{ matrix.image }}|${{ matrix.variant }}|${st}"
+            tail -n +2 /tmp/published-detail.txt
+            echo "_EOF_"
+          } >> "$GITHUB_OUTPUT"
           exit "$code"
-
-      - name: Upload Detail
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: detail-${{ strategy.job-index }}
-          path: /tmp/published-detail-${{ strategy.job-index }}.txt
-          if-no-files-found: ignore
 
   # ========== 3) 汇总结果并回写仓库 ==========
   report:
@@ -88,69 +87,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download Details
-        uses: actions/download-artifact@v8
-        with:
-          path: /tmp/details
-          pattern: detail-*
-          merge-multiple: true
-        continue-on-error: true
-
       - name: Generate Result File
         id: gen
-        run: |
-          NOW=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
-          PASS=0; FAIL=0; SKIP=0
-
-          # 1) 生成 TEST-RESULT.md 详情（每个镜像一段，<details> 折叠）
-          {
-            echo "# 1Panel 镜像发布测试结果"
-            echo ""
-            echo "- 时间: ${NOW}"
-            echo "- 触发者: ${{ github.actor }}"
-            echo ""
-          } > TEST-RESULT.md
-
-          if ls /tmp/details/*.txt >/dev/null 2>&1; then
-            for f in /tmp/details/*.txt; do
-              img=$(sed -n '1s/^# //p' "$f")
-              img_status="🟢"
-              img_fail=0
-              ROWS_FILE=$(mktemp)
-              while IFS='|' read -r name res; do
-                echo "| ${name} | ${res} |" >> "$ROWS_FILE"
-                if [ "$res" = "🔴" ]; then img_fail=1; img_status="🔴"; fi
-              done < <(tail -n +2 "$f")
-              {
-                echo "<details>"
-                echo "<summary>${img} ${img_status}</summary>"
-                echo ""
-                echo "| 检查项 | 结果 |"
-                echo "|---|---|"
-                cat "$ROWS_FILE"
-                echo ""
-                echo "</details>"
-              } >> TEST-RESULT.md
-              rm -f "$ROWS_FILE"
-              if [ "$img_fail" -eq 1 ]; then FAIL=$((FAIL + 1)); else PASS=$((PASS + 1)); fi
-            done
-          else
-            SKIP=1
-            echo "（无镜像测试）" >> TEST-RESULT.md
-          fi
-
-          {
-            echo ""
-            echo "---"
-            echo "通过: ${PASS} / 失败: ${FAIL} / 跳过: ${SKIP}"
-          } >> TEST-RESULT.md
-
-          # 2) 计算整体状态
-          if [ "$FAIL" -gt 0 ]; then STATUS="🔴"; elif [ "$SKIP" -gt 0 ]; then STATUS="🟡"; else STATUS="🟢"; fi
-          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
-          echo "pass=$PASS" >> "$GITHUB_OUTPUT"
-          echo "fail=$FAIL" >> "$GITHUB_OUTPUT"
-          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
+        env:
+          DETAILS: ${{ toJSON(needs.full_test.outputs.detail) }}
+        run: python3 scripts/generate-test-result.py
 
       - name: Commit & Push
         run: |
