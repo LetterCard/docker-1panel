@@ -24,6 +24,11 @@ permissions:
   contents: write
   actions: write
 
+# 两个构建 workflow 会各自触发本测试，串行化避免并发提交 TEST-RESULT.md 冲突
+concurrency:
+  group: published-images-test
+  cancel-in-progress: false
+
 jobs:
   # ========== 1) 解析待测镜像列表 ==========
   resolve:
@@ -139,11 +144,17 @@ jobs:
             tries=0
             until git push; do
               tries=$((tries + 1))
-              if [ "$tries" -ge 3 ]; then
-                echo "::error::结果推送失败"
+              if [ "$tries" -ge 5 ]; then
+                echo "::error::结果推送失败，远端持续有新提交"
                 exit 1
               fi
-              echo "🔁 远端有更新，rebase 后重试"
-              git pull --rebase --autostash
+              echo "🔁 远端有更新，rebase 后重试 (第 ${tries} 次)..."
+              git pull --rebase --autostash || {
+                # rebase 冲突：TEST-RESULT.md 是每次全新生成的文件，直接采用本地新内容
+                echo "⚠️ rebase 冲突，自动采用本次测试结果"
+                git checkout --ours TEST-RESULT.md 2>/dev/null || true
+                git add TEST-RESULT.md
+                GIT_EDITOR=true git rebase --continue
+              }
             done
           fi
