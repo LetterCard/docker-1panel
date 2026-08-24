@@ -2,7 +2,7 @@
 # ==============================================================================
 # 1Panel 已发布镜像全面冒烟测试
 # 用法: published-test.sh <镜像tag> <variant>
-#   <镜像tag>  例如 moelin/1panel:v2 或 moelin/1panel:global-v1
+#   <镜像tag>  例如 bugseeker/1panel:v2 或 bugseeker/1panel:global-v1
 #   <variant>  v1 | v2   （决定数据库文件与进程名）
 #
 # 设计说明:
@@ -11,6 +11,7 @@
 #   - 容器内置 sqlite3/supervisorctl/curl（正式镜像自带），故不依赖宿主工具。
 #   - 任一断言失败会记录 FAIL，全部执行完后以非零退出码报告，便于 CI 展示。
 #   - 运行时只会新增容器 smoke-<随机>，结束后自动清理，不修改任何发布内容。
+#   - 详情逐项写入 $DETAIL_FILE，供 CI 汇总回写 TEST-RESULT.md。
 # ==============================================================================
 set -uo pipefail
 
@@ -22,16 +23,22 @@ PASS=0
 FAIL=0
 declare -a RESULTS=()
 
+# 详情回写文件（供 CI 汇总；可用环境变量 PUBLISHED_DETAIL_FILE 覆盖路径）
+DETAIL_FILE="${PUBLISHED_DETAIL_FILE:-/tmp/published-detail.txt}"
+echo "# ${IMAGE} (variant: ${VARIANT})" > "$DETAIL_FILE"
+
 record() {
-    local name="$1" ok="$2" msg="$3"
+    local name="$1" ok="$2" msg="${3:-}"
     if [ "$ok" -eq 0 ]; then
         PASS=$((PASS + 1))
         RESULTS+=("✅ ${name} 通过")
         echo "[PASS] ${name}"
+        echo "${name}|🟢" >> "$DETAIL_FILE"
     else
         FAIL=$((FAIL + 1))
         RESULTS+=("❌ ${name} 失败: ${msg}")
         echo "[FAIL] ${name}: ${msg}"
+        echo "${name}|🔴" >> "$DETAIL_FILE"
     fi
 }
 
@@ -59,6 +66,7 @@ echo "== [1] 拉取镜像 ${IMAGE} =="
 if ! docker pull "$IMAGE" 2>/tmp/full-test-pull.log; then
     echo "[FAIL] 🚫 镜像拉取失败"
     RESULTS+=("❌ 拉取 ${IMAGE} 失败")
+    echo "镜像拉取|🔴" >> "$DETAIL_FILE"
     FAIL=1
     echo "----- pull 日志 -----"
     cat /tmp/full-test-pull.log

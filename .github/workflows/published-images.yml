@@ -21,7 +21,7 @@ jobs:
     outputs:
       matrix: ${{ steps.gen.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: gen
         run: |
@@ -52,10 +52,10 @@ jobs:
         include: ${{ fromJson(needs.resolve.outputs.matrix) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Run Full Test
         id: test
@@ -70,7 +70,7 @@ jobs:
 
       - name: Upload Detail
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: detail-${{ strategy.job-index }}
           path: /tmp/published-detail-${{ strategy.job-index }}.txt
@@ -84,12 +84,12 @@ jobs:
     if: always()
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Details
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: /tmp/details
           pattern: detail-*

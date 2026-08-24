@@ -125,6 +125,23 @@ V2/
 ### 6. 测试已发布镜像
 Actions 页运行 `Test Published 1Panel Images`，默认测试全部 9 个 tag（动态解析最新版本）。传 `tag` 可只测单个，传 `username` 可覆盖默认命名空间 `bugseeker`。
 
+## Actions 版本（2026-08-24 实测核实）
+
+三个 workflow（`build-1panel-cn` / `build-1panel-global` / `published-images`）使用的 Actions 及当前最新 major 版本（GitHub API 实测）：
+
+| Action | 当前使用 | 最新 major |
+|---|---|---|
+| actions/checkout | @v7 | v7 |
+| actions/upload-artifact | @v7 | v7 |
+| actions/download-artifact | @v8 | v8 |
+| docker/setup-buildx-action | @v4 | v4 |
+| docker/setup-qemu-action | @v4 | v4 |
+| docker/login-action | @v4 | v4 |
+
+- 版本维护由 `.github/dependabot.yml` 每周自动检查，**只对 new major 发 PR**（前缀 `ci:`，合并为一个 PR），小版本自动跟进无需手动处理
+- 手动改 CI 时，这些 action 的 major 与上表保持一致即可，不要凭印象写旧号
+- 注意：`actions/checkout` 的 GitHub `/releases/latest` 显示 v3 是历史残留，实际最新为 **v7**；`upload-artifact` 与 `download-artifact` 的 major 不同步（v7 / v8）
+
 ## 约定与注意事项
 
 - Secrets 仅 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` 两个
