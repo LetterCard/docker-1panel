@@ -1,5 +1,5 @@
 ---
-name: "1panel-docker-maintenance"
+name: "docker-maintenance"
 description: "维护 1Panel Docker 镜像构建项目（CI 流水线、版本升级、冒烟测试、构建脚本）。当用户需要升级 1Panel 版本、修改 GitHub Actions 构建流程、排查构建/测试问题、对比上游 okxlin/docker-1panel 时触发。"
 ---
 
