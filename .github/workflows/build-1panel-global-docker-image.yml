@@ -327,35 +327,40 @@ jobs:
           V2_BUILT="${{ needs.build_images_v2.outputs.built }}"
           V1_BUMP="${{ needs.check_remote_v1.outputs.bump }}"
           V2_BUMP="${{ needs.check_remote_v2.outputs.bump }}"
-          PANELVER=""
-          if [[ "$V1_BUILT" == "true" && -n "$V1_BUMP" ]]; then
-            PANELVER="$V1_BUMP"
-          fi
-          if [[ "$V2_BUILT" == "true" && -n "$V2_BUMP" ]]; then
-            if [ -n "$PANELVER" ]; then
-              PANELVER="${PANELVER}, ${V2_BUMP}"
-            else
-              PANELVER="$V2_BUMP"
-            fi
-          fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ./V1/VERSION-GLOBAL ./V2/VERSION-GLOBAL
-          if git diff --cached --quiet; then
-            echo "ℹ️ 无版本变化需要提交"
-            exit 0
-          fi
-          git commit -m "chore: 1Panel升级到 ${PANELVER}"
 
-          # 远端可能已被另一个并发 workflow 更新，先 rebase 再推送，并带重试
-          RETRIES=0
-          until git push; do
-            RETRIES=$((RETRIES + 1))
-            if [ "$RETRIES" -ge 5 ]; then
-              echo "::error::推送失败，远端持续有新提交"
-              exit 1
+          # 远端可能已被另一个并发 workflow 更新，rebase 后重试推送
+          push_with_retry() {
+            local tries=0
+            until git push; do
+              tries=$((tries + 1))
+              if [ "$tries" -ge 5 ]; then
+                echo "::error::推送失败，远端持续有新提交"
+                exit 1
+              fi
+              echo "🔁 远端有更新，rebase 后重试 (第 ${tries} 次)..."
+              git pull --rebase --autostash
+            done
+          }
+
+          # V1 / V2 各自独立提交，版本号互不混用
+          commit_target() {
+            local name=$1 bump=$2 files=$3
+            git add $files
+            if git diff --cached --quiet; then
+              echo "ℹ️ ${name} 无版本变化需要提交"
+              git restore --staged $files || true
+            else
+              git commit -m "chore: 1Panel升级到 ${bump}"
+              push_with_retry
             fi
-            echo "🔁 远端有更新，rebase 后重试 (第 ${RETRIES} 次)..."
-            git pull --rebase --autostash
-          done
+          }
+
+          if [ -n "$V1_BUMP" ]; then
+            commit_target "V1" "$V1_BUMP" "./V1/VERSION-GLOBAL"
+          fi
+          if [ -n "$V2_BUMP" ]; then
+            commit_target "V2" "$V2_BUMP" "./V2/VERSION-GLOBAL"
+          fi
