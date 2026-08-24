@@ -1,18 +1,32 @@
 #!/usr/bin/env python3
-"""根据各矩阵 job 输出的详情，生成格式化的 TEST-RESULT.md 并写回步骤输出。
+"""根据各矩阵 job 上传的详情文件，生成格式化的 TEST-RESULT.md 并写回步骤输出。
 
-环境变量:
-  DETAILS        各矩阵 job 的 detail 输出（toJSON 聚合成的 JSON 字符串）
-  GITHUB_ACTOR   触发者
-  GITHUB_OUTPUT  步骤输出文件（写入 status/pass/fail/skip）
+输入来源（优先级从高到低）:
+  results-dir/  目录（download-artifact 下载的 detail-*.txt，每个文件一行详情）
+  DETAILS       环境变量（各矩阵 job 输出的 JSON 字符串数组，本地测试用）
+  GITHUB_ACTOR  触发者
+  GITHUB_OUTPUT 步骤输出文件（写入 status/pass/fail/skip）
 """
 import os
 import sys
 import json
+import glob
 import datetime
 
 
 def load_details():
+    # 1) 优先读取 results-dir 目录下的 detail 文件
+    files = sorted(glob.glob("results-dir/**/detail-*.txt", recursive=True))
+    if files:
+        details = []
+        for fp in files:
+            with open(fp, "r", encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if line:
+                        details.append(line)
+        return details
+    # 2) 兼容本地测试：读取 DETAILS 环境变量（JSON 字符串数组）
     raw = os.environ.get("DETAILS", "[]")
     try:
         details = json.loads(raw)
