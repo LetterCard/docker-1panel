@@ -29,7 +29,7 @@ echo "# ${IMAGE} (variant: ${VARIANT})" > "$DETAIL_FILE"
 
 record() {
     local name="$1" ok="$2" msg="${3:-}"
-    if [ "$ok" -eq 0 ]; then
+    if [ "$ok" -eq 1 ]; then
         PASS=$((PASS + 1))
         RESULTS+=("✅ ${name} 通过")
         echo "[PASS] ${name}"
@@ -72,14 +72,12 @@ if ! docker pull "$IMAGE" 2>/tmp/full-test-pull.log; then
     cat /tmp/full-test-pull.log
     exit 1
 fi
-record "镜像可拉取" 0
+record "镜像可拉取" 1
 
 echo "== [2] 启动容器 =="
-# 以常见默认环境变量启动，验证覆盖率
+# 与 smoke-test 对齐：按镜像默认方式启动，不依赖 host 网络/特权
 CID=$(docker run -d \
     --name "$CNAME" \
-    --network host \
-    --privileged \
     -e USERNAME=1panel \
     -e PASSWORD=1panel_test_pass \
     -e PORT=10086 \
@@ -94,10 +92,10 @@ fi
 echo "  容器: $CID"
 
 # ============================ 阶段 B: 服务与进程 ============================
-echo "== [3] 服务健康检查 (http://127.0.0.1:10086) =="
+echo "== [3] 服务健康检查 (容器内 curl http://127.0.0.1:10086) =="
 OK=0
 for i in $(seq 1 300); do
-    if curl -fsS -o /dev/null --max-time 2 "http://127.0.0.1:10086" 2>/dev/null; then
+    if in_exe sh -c "curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:10086" 2>/dev/null; then
         OK=1
         break
     fi
@@ -162,9 +160,9 @@ echo "== [7] 1pctl 常用命令 =="
 for cmd in version user-info status; do
     if in_exe sh -c "/usr/local/bin/1pctl $cmd" >/dev/null 2>&1; then
         echo "  ✓ 1pctl ${cmd}"
-        record "1pctl ${cmd}" 0
+        record "1pctl ${cmd}" 1
     else
-        record "1pctl ${cmd}" 1 "命令失败"
+        record "1pctl ${cmd}" 0 "命令失败"
     fi
 done
 
