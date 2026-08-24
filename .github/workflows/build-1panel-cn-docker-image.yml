@@ -342,10 +342,15 @@ jobs:
           V1_BUMP="${{ needs.check_remote_v1.outputs.bump }}"
           V2_BUMP="${{ needs.check_remote_v2.outputs.bump }}"
           PANELVER=""
-          if [[ "$V2_BUILT" == "true" && -n "$V2_BUMP" ]]; then
-            PANELVER="$V2_BUMP"
-          elif [[ "$V1_BUILT" == "true" && -n "$V1_BUMP" ]]; then
+          if [[ "$V1_BUILT" == "true" && -n "$V1_BUMP" ]]; then
             PANELVER="$V1_BUMP"
+          fi
+          if [[ "$V2_BUILT" == "true" && -n "$V2_BUMP" ]]; then
+            if [ -n "$PANELVER" ]; then
+              PANELVER="${PANELVER}, ${V2_BUMP}"
+            else
+              PANELVER="$V2_BUMP"
+            fi
           fi
 
           git config user.name "github-actions[bot]"
@@ -356,4 +361,15 @@ jobs:
             exit 0
           fi
           git commit -m "chore: 1Panel升级到 ${PANELVER}"
-          git push
+
+          # 远端可能已被另一个并发 workflow 更新，先 rebase 再推送，并带重试
+          RETRIES=0
+          until git push; do
+            RETRIES=$((RETRIES + 1))
+            if [ "$RETRIES" -ge 5 ]; then
+              echo "::error::推送失败，远端持续有新提交"
+              exit 1
+            fi
+            echo "🔁 远端有更新，rebase 后重试 (第 ${RETRIES} 次)..."
+            git pull --rebase --autostash
+          done
