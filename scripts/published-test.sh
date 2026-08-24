@@ -112,13 +112,22 @@ if [ "$VARIANT" = "v1" ]; then
 else
     PROGS=("1panel-core" "1panel-agent")
 fi
+# core 启动较慢（初始化数据库/迁移），等待其进入 RUNNING，消除启动竞态
 PROGS_OK=1
 for p in "${PROGS[@]}"; do
-    if ! in_exe supervisorctl status "$p" 2>/dev/null | grep -q "RUNNING"; then
-        PROGS_OK=0
-        echo "  ✗ 进程 ${p} 未 RUNNING"
-    else
+    ready=0
+    for _ in $(seq 1 45); do
+        if in_exe supervisorctl status "$p" 2>/dev/null | grep -q "RUNNING"; then
+            ready=1
+            break
+        fi
+        sleep 2
+    done
+    if [ "$ready" -eq 1 ]; then
         echo "  ✓ ${p} RUNNING"
+    else
+        PROGS_OK=0
+        echo "  ✗ 进程 ${p} 未 RUNNING（等待 90 秒超时）"
     fi
 done
 record "Supervisor 进程 RUNNING" "$PROGS_OK" "预期进程: ${PROGS[*]}"
