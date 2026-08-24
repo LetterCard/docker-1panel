@@ -39,13 +39,11 @@ jobs:
           echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
           echo "待测镜像: $(echo "${MATRIX}" | jq -c '.')"
 
-  # ========== 2) 逐镜像全面测试 ==========
+  # ========== 2) 逐镜像全面测试（矩阵并行） ==========
   full_test:
     name: Test ${{ matrix.image }}
     runs-on: ubuntu-latest
     needs: resolve
-    outputs:
-      detail: ${{ steps.test.outputs.detail }}
     strategy:
       fail-fast: false
       matrix:
@@ -62,18 +60,24 @@ jobs:
         env:
           IMAGE: ${{ matrix.image }}
           VARIANT: ${{ matrix.variant }}
-          PUBLISHED_DETAIL_FILE: /tmp/published-detail.txt
+          PUBLISHED_DETAIL_FILE: published-detail-${{ strategy.job-index }}.txt
         run: |
+          set +e
           bash scripts/published-test.sh "$IMAGE" "$VARIANT"
           code=$?
           if [ "$code" -eq 0 ]; then st="🟢"; else st="🔴"; fi
-          # 单行编码输出，避免多行值经表达式注入 env 时被换行破坏
+          # 单行编码输出，供 artifact 传递与后续汇总使用
           # 格式: IMAGE|VARIANT|STATUS;检查项|emoji;检查项|emoji;...
-          CHECKS=$(tail -n +2 /tmp/published-detail.txt | tr '\n' ';' | sed 's/;$//')
-          {
-            echo "detail=${IMAGE}|${VARIANT}|${st};${CHECKS}"
-          } >> "$GITHUB_OUTPUT"
+          CHECKS=$(tail -n +2 published-detail-${{ strategy.job-index }}.txt | tr '\n' ';' | sed 's/;$//')
+          printf '%s\n' "${IMAGE}|${VARIANT}|${st};${CHECKS}" > detail-${{ strategy.job-index }}.txt
           exit "$code"
+
+      - name: Upload Detail
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: results
+          path: detail-*.txt
 
   # ========== 3) 汇总结果并回写仓库 ==========
   report:
@@ -87,10 +91,14 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Download Results
+        if: always()
+        uses: actions/download-artifact@v8
+        with:
+          path: results-dir
+
       - name: Generate Result File
         id: gen
-        env:
-          DETAILS: ${{ toJSON(needs.full_test.outputs.detail) }}
         run: python3 scripts/generate-result.py
 
       - name: Commit & Push
