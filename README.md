@@ -16,8 +16,8 @@
 
 | 系列 | 版本源 | Dockerfile | 最新源 | 适用场景 |
 | --- | --- | --- | --- | --- |
-| V1 CN | `resource.fit2cloud.com` | `V1/Dockerfile` | `v1.11.11-lts` | 继续维护已有 V1 部署 |
-| V1 Global | `resource.1panel.pro` | `V1/Dockerfile-Global` | `v1.11.11-lts` | 继续维护已有国际版 V1 部署 |
+| V1 CN | `resource.fit2cloud.com` | `V1/Dockerfile` | `v1.10.11-lts` | 继续维护已有 V1 部署 |
+| V1 Global | `resource.1panel.pro` | `V1/Dockerfile-Global` | `v1.10.11-lts` | 继续维护已有国际版 V1 部署 |
 | V2 CN | `resource.fit2cloud.com/1panel/package/v2` | `V2/Dockerfile` | `v2.2.2` | 新部署推荐 |
 | V2 Global | `resource.1panel.pro/v2` | `V2/Dockerfile-Global` | `v2.2.2` | 新部署国际版推荐 |
 
@@ -27,11 +27,11 @@
 
 ```bash
 # V1 CN
-bugseeker/1panel:v1.11.11-lts
+bugseeker/1panel:v1.10.11-lts
 bugseeker/1panel:v1
 
 # V1 Global
-bugseeker/1panel:global-v1.11.11-lts
+bugseeker/1panel:global-v1.10.11-lts
 bugseeker/1panel:global-v1
 
 # V2 CN
@@ -145,7 +145,7 @@ docker logs 1panel-v2
 ```
 
 > [!IMPORTANT]
-> V1 环境变量配置仅适用于 `v1.11.11-lts` 及之后版本。旧版本 V1 请按原有方式部署和维护。
+> V1 环境变量配置仅适用于 `v1.10.11-lts` 及之后版本。旧版本 V1 请按原有方式部署和维护。
 
 ## 旧数据与密码重置
 
@@ -225,8 +225,8 @@ docker buildx build \
 V1 构建：
 
 ```bash
-docker build --build-arg PANELVER=v1.11.11-lts -t 1panel:v1 ./V1
-docker build -f ./V1/Dockerfile-Global --build-arg PANELVER=v1.11.11-lts -t 1panel:global-v1 ./V1
+docker build --build-arg PANELVER=v1.10.11-lts -t 1panel:v1 ./V1
+docker build -f ./V1/Dockerfile-Global --build-arg PANELVER=v1.10.11-lts -t 1panel:global-v1 ./V1
 ```
 
 ## 常见问题

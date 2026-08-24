@@ -7,7 +7,7 @@ args=$@
 # 这些变量会被 sed 替换
 BASE_DIR=directory
 ORIGINAL_PORT=port
-ORIGINAL_VERSION=v1.11.11-lts
+ORIGINAL_VERSION=v1.10.11-lts
 ORIGINAL_ENTRANCE=entrance
 ORIGINAL_USERNAME=username
 ORIGINAL_PASSWORD=password

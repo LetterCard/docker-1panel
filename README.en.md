@@ -16,8 +16,8 @@ This project provides container images for 1Panel. It supports V1/V2, CN builds,
 
 | Series | Source | Dockerfile | Latest source version | Use case |
 | --- | --- | --- | --- | --- |
-| V1 CN | `resource.fit2cloud.com` | `V1/Dockerfile` | `v1.11.11-lts` | Maintain existing V1 deployments |
-| V1 Global | `resource.1panel.pro` | `V1/Dockerfile-Global` | `v1.11.11-lts` | Maintain existing Global V1 deployments |
+| V1 CN | `resource.fit2cloud.com` | `V1/Dockerfile` | `v1.10.11-lts` | Maintain existing V1 deployments |
+| V1 Global | `resource.1panel.pro` | `V1/Dockerfile-Global` | `v1.10.11-lts` | Maintain existing Global V1 deployments |
 | V2 CN | `resource.fit2cloud.com/1panel/package/v2` | `V2/Dockerfile` | `v2.2.2` | Recommended for new CN deployments |
 | V2 Global | `resource.1panel.pro/v2` | `V2/Dockerfile-Global` | `v2.2.2` | Recommended for new Global deployments |
 
@@ -27,11 +27,11 @@ Common tags:
 
 ```bash
 # V1 CN
-bugseeker/1panel:v1.11.11-lts
+bugseeker/1panel:v1.10.11-lts
 bugseeker/1panel:v1
 
 # V1 Global
-bugseeker/1panel:global-v1.11.11-lts
+bugseeker/1panel:global-v1.10.11-lts
 bugseeker/1panel:global-v1
 
 # V2 CN
@@ -145,7 +145,7 @@ docker logs 1panel-v2
 ```
 
 > [!IMPORTANT]
-> V1 environment-variable initialization applies only to `v1.11.11-lts` and later. Keep older V1 images on their original deployment flow.
+> V1 environment-variable initialization applies only to `v1.10.11-lts` and later. Keep older V1 images on their original deployment flow.
 
 ## Existing Data And Password Resets
 
@@ -225,8 +225,8 @@ docker buildx build \
 V1 builds:
 
 ```bash
-docker build --build-arg PANELVER=v1.11.11-lts -t 1panel:v1 ./V1
-docker build -f ./V1/Dockerfile-Global --build-arg PANELVER=v1.11.11-lts -t 1panel:global-v1 ./V1
+docker build --build-arg PANELVER=v1.10.11-lts -t 1panel:v1 ./V1
+docker build -f ./V1/Dockerfile-Global --build-arg PANELVER=v1.10.11-lts -t 1panel:global-v1 ./V1
 ```
 
 ## FAQ
