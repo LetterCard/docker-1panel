@@ -1,6 +1,13 @@
 name: Test Published 1Panel Images
 
 on:
+  # 构建 workflow 完成后自动触发测试
+  workflow_run:
+    workflows:
+      - Build 1Panel-CN Docker Image
+      - Build 1Panel-Global Docker Image
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       username:
@@ -13,11 +20,17 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+  actions: write
+
 jobs:
   # ========== 1) 解析待测镜像列表 ==========
   resolve:
     name: Resolve Targets
     runs-on: ubuntu-latest
+    # 自动触发时仅在构建成功后运行；手动触发无条件运行
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     outputs:
       matrix: ${{ steps.gen.outputs.matrix }}
     steps:
@@ -87,7 +100,8 @@ jobs:
     name: Report & Commit Result
     runs-on: ubuntu-latest
     needs: [resolve, full_test]
-    if: always()
+    # 自动触发时仅构建成功才回写；手动触发无条件运行
+    if: ${{ always() && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
