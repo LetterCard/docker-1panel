@@ -67,7 +67,7 @@ jobs:
           bash scripts/published-test.sh "$IMAGE" "$VARIANT"
           code=$?
           if [ "$code" -eq 0 ]; then st="🟢"; else st="🔴"; fi
-          # 单行编码输出，避免多行值经 ${{ }} 注入 env 时被换行破坏
+          # 单行编码输出，避免多行值经表达式注入 env 时被换行破坏
           # 格式: IMAGE|VARIANT|STATUS;检查项|emoji;检查项|emoji;...
           CHECKS=$(tail -n +2 /tmp/published-detail.txt | tr '\n' ';' | sed 's/;$//')
           {
