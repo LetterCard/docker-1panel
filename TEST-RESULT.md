@@ -1,154 +1,17 @@
 # 1Panel 镜像发布测试结果
 
-- 时间: 2026-08-24 05:54:44 UTC
-- 触发者: LetterCard
+> 更新时间: 2026-08-24 06:24:41 UTC · 触发者: LetterCard
+
+## 汇总
+
+| 镜像 | 变体 | 结果 |
+|---|---|---|
+| `bugseeker/1panel:v2.2.5` | v2 | 🟢 |
+
+## 详细检查
 
 <details>
-<summary>bugseeker/1panel:latest (variant: v2) 🟢</summary>
-
-| 检查项 | 结果 |
-|---|---|
-| 镜像可拉取 | 🟢 |
-| 服务健康检查(10086) | 🟢 |
-| Supervisor 进程 RUNNING | 🟢 |
-| 数据文件初始化 | 🟢 |
-| 面板版本可读 | 🟢 |
-| 1pctl version | 🟢 |
-| 1pctl user-info | 🟢 |
-| 1pctl status | 🟢 |
-| docker Compose 可用 | 🟢 |
-| 环境变量持久化 | 🟢 |
-| 主进程存活 | 🟢 |
-
-</details>
-<details>
-<summary>bugseeker/1panel:v1 (variant: v1) 🟢</summary>
-
-| 检查项 | 结果 |
-|---|---|
-| 镜像可拉取 | 🟢 |
-| 服务健康检查(10086) | 🟢 |
-| Supervisor 进程 RUNNING | 🟢 |
-| 数据文件初始化 | 🟢 |
-| 面板版本可读 | 🟢 |
-| 1pctl version | 🟢 |
-| 1pctl user-info | 🟢 |
-| 1pctl status | 🟢 |
-| docker Compose 可用 | 🟢 |
-| 环境变量持久化 | 🟢 |
-| 主进程存活 | 🟢 |
-
-</details>
-<details>
-<summary>bugseeker/1panel:global-v1 (variant: v1) 🟢</summary>
-
-| 检查项 | 结果 |
-|---|---|
-| 镜像可拉取 | 🟢 |
-| 服务健康检查(10086) | 🟢 |
-| Supervisor 进程 RUNNING | 🟢 |
-| 数据文件初始化 | 🟢 |
-| 面板版本可读 | 🟢 |
-| 1pctl version | 🟢 |
-| 1pctl user-info | 🟢 |
-| 1pctl status | 🟢 |
-| docker Compose 可用 | 🟢 |
-| 环境变量持久化 | 🟢 |
-| 主进程存活 | 🟢 |
-
-</details>
-<details>
-<summary>bugseeker/1panel:v2 (variant: v2) 🟢</summary>
-
-| 检查项 | 结果 |
-|---|---|
-| 镜像可拉取 | 🟢 |
-| 服务健康检查(10086) | 🟢 |
-| Supervisor 进程 RUNNING | 🟢 |
-| 数据文件初始化 | 🟢 |
-| 面板版本可读 | 🟢 |
-| 1pctl version | 🟢 |
-| 1pctl user-info | 🟢 |
-| 1pctl status | 🟢 |
-| docker Compose 可用 | 🟢 |
-| 环境变量持久化 | 🟢 |
-| 主进程存活 | 🟢 |
-
-</details>
-<details>
-<summary>bugseeker/1panel:global-v2 (variant: v2) 🟢</summary>
-
-| 检查项 | 结果 |
-|---|---|
-| 镜像可拉取 | 🟢 |
-| 服务健康检查(10086) | 🟢 |
-| Supervisor 进程 RUNNING | 🟢 |
-| 数据文件初始化 | 🟢 |
-| 面板版本可读 | 🟢 |
-| 1pctl version | 🟢 |
-| 1pctl user-info | 🟢 |
-| 1pctl status | 🟢 |
-| docker Compose 可用 | 🟢 |
-| 环境变量持久化 | 🟢 |
-| 主进程存活 | 🟢 |
-
-</details>
-<details>
-<summary>bugseeker/1panel:v2.2.5 (variant: v2) 🟢</summary>
-
-| 检查项 | 结果 |
-|---|---|
-| 镜像可拉取 | 🟢 |
-| 服务健康检查(10086) | 🟢 |
-| Supervisor 进程 RUNNING | 🟢 |
-| 数据文件初始化 | 🟢 |
-| 面板版本可读 | 🟢 |
-| 1pctl version | 🟢 |
-| 1pctl user-info | 🟢 |
-| 1pctl status | 🟢 |
-| docker Compose 可用 | 🟢 |
-| 环境变量持久化 | 🟢 |
-| 主进程存活 | 🟢 |
-
-</details>
-<details>
-<summary>bugseeker/1panel:global-v2.2.5 (variant: v2) 🟢</summary>
-
-| 检查项 | 结果 |
-|---|---|
-| 镜像可拉取 | 🟢 |
-| 服务健康检查(10086) | 🟢 |
-| Supervisor 进程 RUNNING | 🟢 |
-| 数据文件初始化 | 🟢 |
-| 面板版本可读 | 🟢 |
-| 1pctl version | 🟢 |
-| 1pctl user-info | 🟢 |
-| 1pctl status | 🟢 |
-| docker Compose 可用 | 🟢 |
-| 环境变量持久化 | 🟢 |
-| 主进程存活 | 🟢 |
-
-</details>
-<details>
-<summary>bugseeker/1panel:v1.10.34-lts (variant: v1) 🟢</summary>
-
-| 检查项 | 结果 |
-|---|---|
-| 镜像可拉取 | 🟢 |
-| 服务健康检查(10086) | 🟢 |
-| Supervisor 进程 RUNNING | 🟢 |
-| 数据文件初始化 | 🟢 |
-| 面板版本可读 | 🟢 |
-| 1pctl version | 🟢 |
-| 1pctl user-info | 🟢 |
-| 1pctl status | 🟢 |
-| docker Compose 可用 | 🟢 |
-| 环境变量持久化 | 🟢 |
-| 主进程存活 | 🟢 |
-
-</details>
-<details>
-<summary>bugseeker/1panel:global-v1.10.34-lts (variant: v1) 🟢</summary>
+<summary><b>bugseeker/1panel:v2.2.5</b> · v2 · 🟢</summary>
 
 | 检查项 | 结果 |
 |---|---|
@@ -167,4 +30,4 @@
 </details>
 
 ---
-通过: 9 / 失败: 0 / 跳过: 0
+**通过: 1 · 失败: 0 · 跳过: 0**
