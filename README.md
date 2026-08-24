@@ -27,7 +27,7 @@
 
 ```bash
 # V1 CN
-bugseeker/1panel:v1.10.11-lts
+bugseeker/1panel:v1.11.11-lts
 bugseeker/1panel:v1
 
 # V1 Global
