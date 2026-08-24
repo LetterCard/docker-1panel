@@ -91,7 +91,7 @@ jobs:
         id: gen
         env:
           DETAILS: ${{ toJSON(needs.full_test.outputs.detail) }}
-        run: python3 scripts/generate-test-result.py
+        run: python3 scripts/generate-result.py
 
       - name: Commit & Push
         run: |

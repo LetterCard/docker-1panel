@@ -25,6 +25,7 @@ description: "维护 1Panel Docker 镜像构建项目（CI 流水线、版本升
 scripts/
   smoke-test.sh                           # 构建前冒烟测试（两个流水线共用）
   published-test.sh                       # 已发布镜像全面测试
+  generate-result.py                      # 汇总各镜像结果，生成根目录 TEST-RESULT.md
   resolve-tags.py                         # 动态解析 Docker Hub tags（published-test 使用）
 V1/
   Dockerfile           # CN 构建（ubuntu:26.04）
@@ -91,9 +92,10 @@ V2/
 - **覆盖**：V1/V2 × CN/Global 共 9 个 tag，matrix 逐镜像执行
 - **检查项**：镜像可拉取、容器可启动、服务健康（10086）、supervisor 进程 RUNNING、数据文件初始化、版本一致、1pctl 命令可用、docker/compose 可用、环境变量持久化、主进程存活
 - **结果回写**：
-  - `TEST-RESULT.md` 生成完整详情，每个镜像一段 `<details>/<summary>` 可折叠表格
+  - 各矩阵 job 将详情经 `GITHUB_OUTPUT` 传给 report job（不再使用 GitHub Artifacts）
+  - `generate-result.py` 汇总生成根目录 `TEST-RESULT.md`，含汇总表 + 每个镜像一段 `<details>/<summary>` 可折叠详情（失败项自动展开） + 统计
   - commit message `chore: 测试结果-><emoji> (通过 N / 失败 M / 跳过 K)`，状态展示在 GitHub 仓库首页的 Commit 列表中
-- **结果仅打印到 Actions 日志并回写 `TEST-RESULT.md`**，不推送镜像、不改 VERSION 版本文件
+- **结果仅回写并提交仓库根目录 `TEST-RESULT.md`**，不推送镜像、不改 VERSION 版本文件
 
 ## 版本号位置（改版本时必须同步）
 
