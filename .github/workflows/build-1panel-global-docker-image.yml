@@ -2,8 +2,9 @@ name: Build 1Panel-Global Docker Image
 
 on:
   schedule:
-    - cron: "0 14 * * 2"
-    - cron: "0 11 * * 5"
+  #- cron: "0 14 * * 2"   # 每周二 14:00 (UTC)
+  #- cron: "0 11 * * 5"   # 每周五 11:00 (UTC)
+  - cron: "0 0 * * *"   # 每天 00:00 (UTC)
 
   workflow_dispatch:
     inputs:
