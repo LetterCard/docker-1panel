@@ -1,6 +1,6 @@
 # 1Panel 镜像发布测试结果
 
-> 更新时间: 2026-09-10 03:02:07 UTC · 触发者: LetterCard
+> 更新时间: 2026-09-11 02:54:45 UTC · 触发者: LetterCard
 
 ## 汇总
 
@@ -12,7 +12,7 @@
 | `bugseeker/1panel:global-v2.2.5` | v2 | 🟢 |
 | `bugseeker/1panel:global-v2` | v2 | 🟢 |
 | `bugseeker/1panel:v1.10.34-lts` | v1 | 🟢 |
-| `bugseeker/1panel:v1` | v1 | 🔴 |
+| `bugseeker/1panel:v1` | v1 | 🟢 |
 | `bugseeker/1panel:v2.2.5` | v2 | 🟢 |
 | `bugseeker/1panel:v2` | v2 | 🟢 |
 
@@ -132,8 +132,8 @@
 
 </details>
 
-<details open>
-<summary><b>bugseeker/1panel:v1</b> · v1 · 🔴</summary>
+<details>
+<summary><b>bugseeker/1panel:v1</b> · v1 · 🟢</summary>
 
 | 检查项 | 结果 |
 |---|---|
@@ -146,7 +146,7 @@
 | 1pctl user-info | 🟢 |
 | 1pctl status | 🟢 |
 | docker Compose 可用 | 🟢 |
-| 环境变量持久化 | 🔴 |
+| 环境变量持久化 | 🟢 |
 | 主进程存活 | 🟢 |
 
 </details>
@@ -190,4 +190,4 @@
 </details>
 
 ---
-**通过: 8 · 失败: 1 · 跳过: 0**
+**通过: 9 · 失败: 0 · 跳过: 0**
