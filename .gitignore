@@ -4,3 +4,7 @@
 # Python
 __pycache__/
 *.pyc
+
+# 冒烟测试明细（本地运行 smoke.sh 时产生）
+results/
+results-dir/
