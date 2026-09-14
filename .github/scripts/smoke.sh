@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 1Panel Docker 镜像冒烟测试脚本
-# 用法: smoke-test.sh <NAME> <VERSION> <CONTEXT> <DOCKERFILE> <DB_FILE> <SUPERVISOR_PROG...>
+# 用法: smoke.sh <NAME> <VERSION> <CONTEXT> <DOCKERFILE> <DB_FILE> <SUPERVISOR_PROG...>
 # 无 VERSION 时跳过（该目标本轮未更新）；任一检查失败则以非零退出，由调用方决定是否放行
 set -euo pipefail
 

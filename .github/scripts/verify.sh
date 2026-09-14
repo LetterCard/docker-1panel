@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # 1Panel 已发布镜像全面冒烟测试
-# 用法: published-test.sh <镜像tag> <variant>
+# 用法: verify.sh <镜像tag> <variant>
 #   <镜像tag>  例如 bugseeker/1panel:v2 或 bugseeker/1panel:global-v1
 #   <variant>  v1 | v2   （决定数据库文件与进程名）
 #
@@ -75,7 +75,7 @@ fi
 record "镜像可拉取" 1
 
 echo "== [2] 启动容器 =="
-# 与 smoke-test 对齐：按镜像默认方式启动，不依赖 host 网络/特权
+# 与 smoke.sh 对齐：按镜像默认方式启动，不依赖 host 网络/特权
 CID=$(docker run -d \
     --name "$CNAME" \
     -e USERNAME=1panel \

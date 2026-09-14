@@ -9,7 +9,7 @@
   - v2.<x>
   - global-v2.<x>
 
-用法: python3 resolve-tags.py <namespace> [--api-base <url>] [--single <tag>]
+用法: python3 tags.py <namespace> [--api-base <url>] [--single <tag>]
 """
 import argparse
 import json

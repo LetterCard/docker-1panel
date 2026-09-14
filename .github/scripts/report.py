@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""根据各矩阵 job 上传的详情文件，生成格式化的 TEST-RESULT.md 并写回步骤输出。
+"""根据各矩阵 job 上传的详情文件，生成格式化的测试结果并输出到 stdout
+（由调用方重定向到 $GITHUB_STEP_SUMMARY 显示在运行摘要，不再写回仓库文件）。
 
 输入来源（优先级从高到低）:
   results-dir/  目录（download-artifact 下载的 detail-*.txt，每个文件一行详情）
@@ -79,35 +80,46 @@ def main():
     fail_n = 0
     skip_n = 0
 
-    with open("TEST-RESULT.md", "w", encoding="utf-8") as f:
-        f.write("# 1Panel 镜像发布测试结果\n\n")
-        f.write(f"> 更新时间: {now} · 触发者: {actor}\n\n")
+    out = []
+    out.append("# 1Panel 镜像发布测试结果")
+    out.append("")
+    out.append(f"> 更新时间: {now} · 触发者: {actor}")
+    out.append("")
 
-        if not rows:
-            skip_n = 1
-            f.write("（无镜像测试）\n")
-        else:
-            f.write("## 汇总\n\n")
-            f.write("| 镜像 | 变体 | 结果 |\n|---|---|---|\n")
-            for img, variant, st, _ in rows:
-                f.write(f"| `{img}` | {variant} | {st} |\n")
-            f.write("\n## 详细检查\n\n")
+    if not rows:
+        skip_n = 1
+        out.append("（无镜像测试）")
+    else:
+        out.append("## 汇总")
+        out.append("")
+        out.append("| 镜像 | 变体 | 结果 |")
+        out.append("|---|---|---|")
+        for img, variant, st, _ in rows:
+            out.append(f"| `{img}` | {variant} | {st} |")
+        out.append("")
+        out.append("## 详细检查")
+        out.append("")
 
-            for img, variant, st, checks in rows:
-                if st == "🔴":
-                    fail_n += 1
-                else:
-                    pass_n += 1
-                open_attr = " open" if st == "🔴" else ""
-                f.write(f"<details{open_attr}>\n")
-                f.write(f"<summary><b>{img}</b> · {variant} · {st}</summary>\n\n")
-                f.write("| 检查项 | 结果 |\n|---|---|\n")
-                for name, res in checks:
-                    f.write(f"| {name} | {res} |\n")
-                f.write("\n</details>\n\n")
+        for img, variant, st, checks in rows:
+            if st == "🔴":
+                fail_n += 1
+            else:
+                pass_n += 1
+            open_attr = " open" if st == "🔴" else ""
+            out.append(f"<details{open_attr}>")
+            out.append(f"<summary><b>{img}</b> · {variant} · {st}</summary>")
+            out.append("")
+            out.append("| 检查项 | 结果 |")
+            out.append("|---|---|")
+            for name, res in checks:
+                out.append(f"| {name} | {res} |")
+            out.append("")
+            out.append("</details>")
+            out.append("")
 
-        f.write("---\n")
-        f.write(f"**通过: {pass_n} · 失败: {fail_n} · 跳过: {skip_n}**\n")
+    out.append("---")
+    out.append(f"**通过: {pass_n} · 失败: {fail_n} · 跳过: {skip_n}**")
+    sys.stdout.write("\n".join(out) + "\n")
 
     if fail_n > 0:
         status = "🔴"
