@@ -19,6 +19,7 @@ if [ -z "$VERSION" ]; then
 fi
 
 IMG="1panel-smoke:${NAME}"
+REPORT_IMG="1Panel ${NAME} 冒烟镜像"
 
 # 变体来源：Dockerfile-Global -> Global，其余视为 CN
 if [[ "$DOCKERFILE" == *"Global"* ]]; then
@@ -51,7 +52,7 @@ record() {  # record <检查项下标> <0|1> [失败说明]
 write_detail() {
   local status="🟢" i
   [ "$FAILED" -ne 0 ] && status="🔴"
-  local line="1panel-smoke:${NAME}|${VARIANT}|${status}"
+  local line="${REPORT_IMG}|${VARIANT}|${status}"
   for i in "${!CHECK_NAMES[@]}"; do
     line="${line};${CHECK_NAMES[$i]}|${CHECK_RES[$i]}"
   done

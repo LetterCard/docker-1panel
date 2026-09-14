@@ -190,7 +190,7 @@ jobs:
 
       - name: 上传测试明细 V1
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: detail-cn-v1
           path: results/detail-V1.txt
@@ -221,7 +221,7 @@ jobs:
 
       - name: 上传测试明细 V2
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: detail-cn-v2
           path: results/detail-V2.txt
@@ -407,7 +407,7 @@ jobs:
       - name: 下载测试明细
         # 本轮无更新的目标其冒烟 job 会被跳过，无产物时不应中断摘要生成
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: detail-cn-*
           path: results-dir
