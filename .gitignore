@@ -1,0 +1,33 @@
+# ===== CI 产物 / 测试明细（由 workflow 运行时生成，上传为 artifact） =====
+results/
+results-dir/
+detail-*.txt
+
+# ===== 操作系统 / 编辑器垃圾文件 =====
+.DS_Store
+Thumbs.db
+Desktop.ini
+*~
+
+# ===== 编辑器 / IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+
+# ===== 缓存目录 =====
+.cache/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.tox/
+.venv/
+venv/
+env/
+
+# ===== 临时 / 备份文件 =====
+*.tmp
+*.bak
+*.orig
+*.log

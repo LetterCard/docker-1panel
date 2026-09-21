@@ -110,13 +110,24 @@ record 2 "$OK" "300 秒内未就绪"
 
 echo "== 2) 检查 supervisor 进程状态 =="
 docker exec "$CID" supervisorctl status || true
+# 入口脚本在首次初始化时会执行 1pctl update/restart，期间受管进程会经历
+# STOPPING/STARTING 短暂窗口，故采用轮询而非单次快照，避免误判为未 RUNNING。
+PROG_TIMEOUT=${SMOKE_PROG_TIMEOUT:-180}
 PROGS_OK=1
 for p in "${PROGS[@]}"; do
-  if docker exec "$CID" supervisorctl status "$p" 2>/dev/null | grep -q "RUNNING"; then
-    echo "  ✓ ${p} RUNNING"
-  else
+  OKP=0
+  for i in $(seq 1 "$PROG_TIMEOUT"); do
+    if docker exec "$CID" supervisorctl status "$p" 2>/dev/null | grep -q "RUNNING"; then
+      OKP=1
+      echo "  ✓ ${p} RUNNING (第 ${i}s)"
+      break
+    fi
+    sleep 1
+  done
+  if [ "$OKP" -ne 1 ]; then
     PROGS_OK=0
-    echo "  ✗ ${p} 未处于 RUNNING"
+    echo "  ✗ ${p} 在 ${PROG_TIMEOUT}s 内未处于 RUNNING"
+    docker exec "$CID" supervisorctl status "$p" 2>/dev/null || true
   fi
 done
 if [ "$PROGS_OK" -ne 1 ]; then
