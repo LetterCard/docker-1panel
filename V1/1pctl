@@ -1,0 +1,192 @@
+#!/bin/bash
+
+action=$1
+target=$2
+args=$@
+
+# 这些变量会被 sed 替换
+BASE_DIR=directory
+ORIGINAL_PORT=port
+ORIGINAL_VERSION=v1.10.11-lts
+ORIGINAL_ENTRANCE=entrance
+ORIGINAL_USERNAME=username
+ORIGINAL_PASSWORD=password
+LANGUAGE=en
+
+# 加载语言包
+if [ -f "/usr/local/bin/lang/$LANGUAGE.sh" ]; then
+    source "/usr/local/bin/lang/$LANGUAGE.sh"
+else
+    # 简单的回退文本，防止找不到语言包报错
+    TXT_PANEL_SERVICE_STATUS="Status"
+    TXT_PANEL_SERVICE_START="Start"
+    TXT_PANEL_SERVICE_STOP="Stop"
+    TXT_PANEL_SERVICE_RESTART="Restart"
+    TXT_SUCCESSFULLY_MESSAGE="Success"
+    TXT_FAILED_MESSAGE="Failed"
+fi
+
+# 检查 Root (容器内通常是 root，保留无妨)
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "Please run as root"
+        exit 1
+    fi
+}
+
+# ==============================================================================
+# 核心修改区：适配 Supervisor
+# ==============================================================================
+
+# 定义服务管理器为 supervisor
+_service_manager() {
+    if command -v supervisorctl &>/dev/null; then
+        service_manager="supervisor"
+        # 在 V1 的 supervisord.conf 中，我们把进程命名为 [program:1panel]
+        service_target="1panel"
+    else
+        echo "Error: Supervisor not found. This script is for Docker environment."
+        exit 1
+    fi
+}
+
+_service_cmd() {
+    local cmd=$1 success_msg=$2 error_msg=$3
+    _service_manager
+    
+    # 调用 supervisorctl
+    if ! supervisorctl "$cmd" "$service_target" >/dev/null; then
+        echo "$error_msg" >&2
+        exit 1
+    fi
+    [[ -n "$success_msg" ]] && echo "$success_msg"
+}
+
+# ==============================================================================
+# 命令实现
+# ==============================================================================
+
+function status() {
+    echo "--- 1Panel Service Status ---"
+    supervisorctl status 1panel
+    echo "-----------------------------"
+}
+
+function start() {
+    _service_cmd "start" "1Panel started successfully." "Failed to start 1Panel."
+}
+
+function stop() {
+    _service_cmd "stop" "1Panel stopped successfully." "Failed to stop 1Panel."
+}
+
+function restart() {
+    _service_cmd "restart" "1Panel restarted successfully." "Failed to restart 1Panel."
+}
+
+# Docker 环境下卸载就是删除容器，这里仅做提示或停止服务
+function uninstall() {
+    echo "In Docker environment, simply remove the container to uninstall."
+    stop
+}
+
+# 以下功能直接调用二进制文件，无需修改
+function user-info() {
+    1panel -l $LANGUAGE user-info
+}
+
+function listen-ip() {
+    case "${target}" in
+        ipv4)
+            1panel -l $LANGUAGE listen-ip ipv4
+            restart
+            ;;
+        ipv6)
+            1panel -l $LANGUAGE listen-ip ipv6
+            restart
+            ;;
+        *)
+            1panel -l $LANGUAGE listen-ip
+            ;;
+    esac
+}
+
+function restore() {
+    # 自动确认，不交互
+    echo "Restoring data..."
+    1panel -l $LANGUAGE restore
+    restart
+    1panel -l $LANGUAGE version
+}
+
+function version() {
+    1panel -l $LANGUAGE version
+}
+
+function reset() {
+    case "${target}" in
+        domain)
+            1panel -l $LANGUAGE reset domain
+            ;;
+        entrance)
+            1panel -l $LANGUAGE reset entrance
+            ;;
+        https)
+            1panel -l $LANGUAGE reset https
+            restart
+            ;;
+        ips)
+            1panel -l $LANGUAGE reset ips
+            ;;
+        mfa)
+            1panel -l $LANGUAGE reset mfa
+            ;;
+        *)
+            1panel -l $LANGUAGE reset
+            ;;
+    esac
+}
+
+function update() {
+    case "${target}" in
+        username)
+            1panel -l $LANGUAGE update username
+            ;;
+        password)
+            1panel -l $LANGUAGE update password
+            ;;
+        port)
+            1panel -l $LANGUAGE update port
+            ;;
+        *)
+            1panel -l $LANGUAGE update
+            ;;
+    esac
+}
+
+function usage() {
+    echo "1Panel Control Script (Docker Optimized)"
+    echo "Usage: 1pctl [COMMAND] [ARGS...]"
+    echo "Commands: status, start, stop, restart, user-info, reset, update, version"
+}
+
+# 主入口
+function main() {
+    case "${action}" in
+        status) status ;;
+        start) start ;;
+        stop) stop ;;
+        restart) restart ;;
+        restore) restore ;;
+        uninstall) uninstall ;;
+        user-info) user-info ;;
+        listen-ip) listen-ip ;;
+        version) version ;;
+        reset) reset ;;
+        update) update ;;
+        help|--help) usage ;;
+        *) usage ;;
+    esac
+}
+
+main
