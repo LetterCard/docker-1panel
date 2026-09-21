@@ -1,0 +1,403 @@
+name: Build 1Panel-国际版
+
+on:
+  schedule:
+  #- cron: "0 14 * * 2"   # 每周二 14:00 (UTC)
+  #- cron: "0 11 * * 5"   # 每周五 11:00 (UTC)
+  - cron: "0 0 * * *"   # 每天 00:00 (UTC)
+
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "选择构建目标 (Select Build Target)"
+        required: true
+        default: "All"
+        type: choice
+        options:
+          - All
+          - V1
+          - V2
+      version:
+        description: "指定版本号 (选择单个目标时使用；All 留空则分别获取最新版)"
+        required: false
+        type: string
+      force:
+        description: "强制重建 (忽略版本比对，直接构建当前跟踪版本)"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  # ========== 阶段 1: check_remote (V1/V2 并行) ==========
+  check_remote_v1:
+    name: 检查远程版本 V1
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.compare.outputs.version }}
+      bump: ${{ steps.compare.outputs.bump }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check V1
+        id: compare
+        run: |
+          verify() {
+            local v="$1"
+            if [[ -z "$v" || ! "$v" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
+              echo "::error::Invalid 1Panel version: ${v}"
+              exit 1
+            fi
+          }
+
+          TARGET="${{ inputs.target }}"
+          FORCE="${{ inputs.force }}"
+          VER_INPUT="${{ inputs.version }}"
+
+          # 手动选择单一目标且不是 V1 时跳过
+          if [[ "$TARGET" != "All" && "$TARGET" != "V1" ]]; then
+            echo "⏭️ 用户选择 ${TARGET}，跳过 V1 检查"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          LOCAL=$(cat ./V1/VERSION-GLOBAL)
+
+          # 手动指定版本号（仅单一目标时生效）
+          if [[ -n "$VER_INPUT" && "$TARGET" == "V1" ]]; then
+            verify "$VER_INPUT"
+            echo "👉 V1 使用手动版本: ${VER_INPUT}"
+            echo "version=${VER_INPUT}" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 强制重建：直接使用当前跟踪版本
+          if [[ "$FORCE" == "true" ]]; then
+            echo "🔨 强制重建 V1，使用当前跟踪版本: ${LOCAL}"
+            echo "version=${LOCAL}" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 自动：拉取远端最新版本并比对
+          REMOTE=$(curl -fsSL "https://resource.1panel.pro/stable/latest")
+          verify "$REMOTE"
+          if [[ "$REMOTE" == "$LOCAL" ]]; then
+            echo "🟢 V1 无更新: ${LOCAL}"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+          else
+            echo "🟡 V1 有新版本: ${LOCAL} -> ${REMOTE}"
+            echo "version=${REMOTE}" >> "$GITHUB_OUTPUT"
+            echo "bump=${REMOTE}" >> "$GITHUB_OUTPUT"
+          fi
+
+  check_remote_v2:
+    name: 检查远程版本 V2
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.compare.outputs.version }}
+      bump: ${{ steps.compare.outputs.bump }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check V2
+        id: compare
+        run: |
+          verify() {
+            local v="$1"
+            if [[ -z "$v" || ! "$v" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
+              echo "::error::Invalid 1Panel version: ${v}"
+              exit 1
+            fi
+          }
+
+          TARGET="${{ inputs.target }}"
+          FORCE="${{ inputs.force }}"
+          VER_INPUT="${{ inputs.version }}"
+
+          # 手动选择单一目标且不是 V2 时跳过
+          if [[ "$TARGET" != "All" && "$TARGET" != "V2" ]]; then
+            echo "⏭️ 用户选择 ${TARGET}，跳过 V2 检查"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          LOCAL=$(cat ./V2/VERSION-GLOBAL)
+
+          # 手动指定版本号（仅单一目标时生效）
+          if [[ -n "$VER_INPUT" && "$TARGET" == "V2" ]]; then
+            verify "$VER_INPUT"
+            echo "👉 V2 使用手动版本: ${VER_INPUT}"
+            echo "version=${VER_INPUT}" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 强制重建：直接使用当前跟踪版本
+          if [[ "$FORCE" == "true" ]]; then
+            echo "🔨 强制重建 V2，使用当前跟踪版本: ${LOCAL}"
+            echo "version=${LOCAL}" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 自动：拉取远端最新版本并比对
+          REMOTE=$(curl -fsSL "https://resource.1panel.pro/v2/stable/latest")
+          verify "$REMOTE"
+          if [[ "$REMOTE" == "$LOCAL" ]]; then
+            echo "🟢 V2 无更新: ${LOCAL}"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "bump=" >> "$GITHUB_OUTPUT"
+          else
+            echo "🟡 V2 有新版本: ${LOCAL} -> ${REMOTE}"
+            echo "version=${REMOTE}" >> "$GITHUB_OUTPUT"
+            echo "bump=${REMOTE}" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ========== 阶段 2: check_images 冒烟测试 (V1/V2 并行) ==========
+  check_images_v1:
+    name: 冒烟测试 V1 Global
+    runs-on: ubuntu-latest
+    needs: check_remote_v1
+    if: needs.check_remote_v1.outputs.version != ''
+    outputs:
+      pass: ${{ steps.smoke.outputs.pass }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: 冒烟测试 V1
+        id: smoke
+        env:
+          VERSION: ${{ needs.check_remote_v1.outputs.version }}
+        run: |
+          set -e
+          bash .github/scripts/smoke.sh V1 "$VERSION" ./V1 ./V1/Dockerfile-Global 1Panel.db 1panel
+          echo "pass=true" >> "$GITHUB_OUTPUT"
+
+      - name: 上传测试明细 V1
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: detail-global-v1
+          path: results/detail-V1.txt
+          if-no-files-found: error
+
+  check_images_v2:
+    name: 冒烟测试 V2 Global
+    runs-on: ubuntu-latest
+    needs: check_remote_v2
+    if: needs.check_remote_v2.outputs.version != ''
+    outputs:
+      pass: ${{ steps.smoke.outputs.pass }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: 冒烟测试 V2
+        id: smoke
+        env:
+          VERSION: ${{ needs.check_remote_v2.outputs.version }}
+        run: |
+          set -e
+          bash .github/scripts/smoke.sh V2 "$VERSION" ./V2 ./V2/Dockerfile-Global core.db 1panel-core 1panel-agent
+          echo "pass=true" >> "$GITHUB_OUTPUT"
+
+      - name: 上传测试明细 V2
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: detail-global-v2
+          path: results/detail-V2.txt
+          if-no-files-found: error
+
+  # ========== 阶段 3: build_images 构建推送 (V1/V2 并行) ==========
+  build_images_v1:
+    name: 构建并推送 V1 Global
+    runs-on: ubuntu-latest
+    needs: [check_remote_v1, check_images_v1]
+    if: needs.check_remote_v1.outputs.version != '' && needs.check_images_v1.outputs.pass == 'true'
+    outputs:
+      built: ${{ steps.build.outputs.built }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 构建并推送 V1
+        id: build
+        env:
+          VERSION: ${{ needs.check_remote_v1.outputs.version }}
+        run: |
+          set -euo pipefail
+          USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
+          TAGS=("${USERNAME}/1panel:global-${VERSION}" "${USERNAME}/1panel:global-v1")
+          TAG_ARGS=""
+          for t in "${TAGS[@]}"; do TAG_ARGS="${TAG_ARGS} -t ${t}"; done
+          echo "🚀 构建并推送 V1: ${TAGS[*]}"
+          docker buildx build --push \
+            --platform linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le,linux/s390x \
+            --file ./V1/Dockerfile-Global \
+            --build-arg "PANELVER=${VERSION}" \
+            ${TAG_ARGS} \
+            ./V1
+          echo "✅ V1 推送完成"
+          echo "built=true" >> "$GITHUB_OUTPUT"
+
+  build_images_v2:
+    name: 构建并推送 V2 Global
+    runs-on: ubuntu-latest
+    needs: [check_remote_v2, check_images_v2]
+    if: needs.check_remote_v2.outputs.version != '' && needs.check_images_v2.outputs.pass == 'true'
+    outputs:
+      built: ${{ steps.build.outputs.built }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 构建并推送 V2
+        id: build
+        env:
+          VERSION: ${{ needs.check_remote_v2.outputs.version }}
+        run: |
+          set -euo pipefail
+          USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
+          TAGS=("${USERNAME}/1panel:global-${VERSION}" "${USERNAME}/1panel:global-v2")
+          TAG_ARGS=""
+          for t in "${TAGS[@]}"; do TAG_ARGS="${TAG_ARGS} -t ${t}"; done
+          echo "🚀 构建并推送 V2: ${TAGS[*]}"
+          docker buildx build --push \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
+            --platform linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le,linux/s390x \
+            --file ./V2/Dockerfile-Global \
+            --build-arg "PANELVER=${VERSION}" \
+            ${TAG_ARGS} \
+            ./V2
+          echo "✅ V2 推送完成"
+          echo "built=true" >> "$GITHUB_OUTPUT"
+
+  # ========== 阶段 4: bump_version 回写版本并提交 ==========
+  bump_version:
+    name: 更新 VERSION-GLOBAL 并提交
+    runs-on: ubuntu-latest
+    needs: [check_remote_v1, check_remote_v2, build_images_v1, build_images_v2]
+    if: "!cancelled() && (needs.check_remote_v1.outputs.version != '' || needs.check_remote_v2.outputs.version != '')"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write VERSION-GLOBAL files
+        run: |
+          V1_BUILT="${{ needs.build_images_v1.outputs.built }}"
+          V2_BUILT="${{ needs.build_images_v2.outputs.built }}"
+          V1_BUMP="${{ needs.check_remote_v1.outputs.bump }}"
+          V2_BUMP="${{ needs.check_remote_v2.outputs.bump }}"
+          if [[ "$V1_BUILT" == "true" && -n "$V1_BUMP" ]]; then
+            printf '%s\n' "$V1_BUMP" > ./V1/VERSION-GLOBAL
+            echo "✅ 写入 V1/VERSION-GLOBAL = ${V1_BUMP}"
+          fi
+          if [[ "$V2_BUILT" == "true" && -n "$V2_BUMP" ]]; then
+            printf '%s\n' "$V2_BUMP" > ./V2/VERSION-GLOBAL
+            echo "✅ 写入 V2/VERSION-GLOBAL = ${V2_BUMP}"
+          fi
+
+      - name: Commit & Push
+        run: |
+          V1_BUILT="${{ needs.build_images_v1.outputs.built }}"
+          V2_BUILT="${{ needs.build_images_v2.outputs.built }}"
+          V1_BUMP="${{ needs.check_remote_v1.outputs.bump }}"
+          V2_BUMP="${{ needs.check_remote_v2.outputs.bump }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # 远端可能已被另一个并发 workflow 更新，rebase 后重试推送
+          push_with_retry() {
+            local tries=0
+            until git push; do
+              tries=$((tries + 1))
+              if [ "$tries" -ge 5 ]; then
+                echo "::error::推送失败，远端持续有新提交"
+                exit 1
+              fi
+              echo "🔁 远端有更新，rebase 后重试 (第 ${tries} 次)..."
+              git pull --rebase --autostash
+            done
+          }
+
+          # V1 / V2 各自独立提交，版本号互不混用
+          commit_target() {
+            local name=$1 bump=$2 files=$3
+            git add $files
+            if git diff --cached --quiet; then
+              echo "ℹ️ ${name} 无版本变化需要提交"
+              git restore --staged $files || true
+            else
+              git commit -m "chore: 1Panel升级到 ${bump}"
+              push_with_retry
+            fi
+          }
+
+          if [ -n "$V1_BUMP" ]; then
+            commit_target "V1" "$V1_BUMP" "./V1/VERSION-GLOBAL"
+          fi
+          if [ -n "$V2_BUMP" ]; then
+            commit_target "V2" "$V2_BUMP" "./V2/VERSION-GLOBAL"
+          fi
+
+  report:
+    name: 生成测试摘要
+    runs-on: ubuntu-latest
+    needs: [check_images_v1, check_images_v2]
+    if: ${{ !cancelled() }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: 下载测试明细
+        # 本轮无更新的目标其冒烟 job 会被跳过，无产物时不应中断摘要生成
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: detail-global-*
+          path: results-dir
+          merge-multiple: true
+      - name: 生成测试摘要
+        run: |
+          python3 .github/scripts/report.py >> "$GITHUB_STEP_SUMMARY"
