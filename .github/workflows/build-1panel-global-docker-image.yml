@@ -1,5 +1,9 @@
 name: Build 1Panel-国际版
 
+# 回写 VERSION 需要用 GITHUB_TOKEN 推送提交，必须显式授予写权限
+permissions:
+  contents: write
+
 on:
   schedule:
   #- cron: "0 14 * * 2"   # 每周二 14:00 (UTC)
